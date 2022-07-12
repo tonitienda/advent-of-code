@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path')
 
-const getFileContent = (localpath, splitBy) => fs.readFileSync(path.join(__dirname, localpath)).toString().split(splitBy)
-const getFileLines = (localpath) => getFileContent(localpath, '\r\n')
+const getFileContent = (localpath, splitBy) =>  fs.readFileSync(path.join(__dirname, localpath)).toString().split(splitBy)
 
-const getNumbersFromFile = (localpath, splitBy = '\r\n') => getFileContent(localpath, splitBy).map(Number)
+const getFileLines = (localpath) => getFileContent(localpath, '\n')
+
+const getNumbersFromFile = (localpath, splitBy = '\n') => getFileContent(localpath, splitBy).map(Number)
 
 const printMatrix = (matrix, separator="") => {
     for(let i = 0; i < matrix.length; i++) {

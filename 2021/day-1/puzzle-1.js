@@ -3,6 +3,7 @@ const { getNumbersFromFile } = require('../input-tools')
 function main () {
 
     const numbers = getNumbersFromFile("day-1/input.txt")
+    console.log(numbers)
     const incrementsCount = numbers.map((n, index, self) => {
         if(index === 0) {
             return 0
