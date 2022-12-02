@@ -35,15 +35,10 @@ func Max[I int | float32](array []I) I {
 }
 
 func MaxN(array []int, n int) []int {
-	result := make([]int, n)
-	copy(result, array[:n])
+	length := len(array)
+	result := make([]int, length)
+	copy(result, array)
 	sort.Ints(result)
 
-	for _, t := range array {
-		if result[0] < t {
-			result[0] = t
-			sort.Ints(result[:])
-		}
-	}
-	return result
+	return result[length-n:]
 }
