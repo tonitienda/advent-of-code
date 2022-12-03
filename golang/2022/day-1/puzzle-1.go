@@ -14,7 +14,7 @@ func StrToInt(str string) int {
 }
 
 func main() {
-	data := input.GetContents("input.txt")
+	data := input.GetContents(2022, 1, "input.txt")
 
 	elvesFoods := strings.Split(data, "\n\n")
 	elvesFoods2 := array.Map(elvesFoods, func(s string) []int { return array.Map(strings.Split(s, "\n"), StrToInt) })
