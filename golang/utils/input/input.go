@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strings"
 )
 
 func GetContents(year int, day int, filename string) string {
@@ -15,4 +16,8 @@ func GetContents(year int, day int, filename string) string {
 	}
 
 	return string(data)
+}
+
+func GetLines(year int, day int, filename string) []string {
+	return strings.Split(GetContents(year, day, filename), "\n")
 }
