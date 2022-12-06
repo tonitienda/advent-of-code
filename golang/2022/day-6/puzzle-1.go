@@ -23,7 +23,7 @@ func areUnique(str string, index, numchars int) bool {
 func main() {
 	data := input.GetContents(2022, 6, "input.txt")
 
-	NUM_CHARS := 14
+	NUM_CHARS := 4
 	fmt.Println(data)
 
 	for i := 0; i < len(data)-(NUM_CHARS-1); i++ {
