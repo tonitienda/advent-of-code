@@ -8,10 +8,6 @@ import (
 	"strings"
 )
 
-type Dir struct {
-	parent string
-}
-
 func StrToInt(str string) int {
 	return funct.GetValue(strconv.Atoi(str))
 }
@@ -46,6 +42,20 @@ func ls(currentDir []string, commands []string, pc int, fileSizes map[string]int
 	return fileSizes, pc
 }
 
+func cd(currentDir []string, dest string, pc int) ([]string, int) {
+
+	switch dest {
+	case "/":
+		currentDir = []string{"/"}
+	case "..":
+		currentDir = currentDir[:len(currentDir)-1]
+	default:
+		currentDir = append(currentDir, dest)
+	}
+
+	return currentDir, pc + 1
+}
+
 func calculateFolderSizes(commands []string) map[string]int {
 	fileSizes := map[string]int{}
 	currentDir := []string{"/"}
@@ -61,17 +71,9 @@ func calculateFolderSizes(commands []string) map[string]int {
 			switch comps[1] {
 			case "ls":
 				fileSizes, pc = ls(currentDir, commands, pc, fileSizes)
-
 			case "cd":
-				switch comps[2] {
-				case "/":
-					currentDir = []string{"/"}
-				case "..":
-					currentDir = currentDir[:len(currentDir)-1]
-				default:
-					currentDir = append(currentDir, comps[2])
-				}
-				pc++
+				currentDir, pc = cd(currentDir, comps[2], pc)
+
 			}
 		}
 	}
