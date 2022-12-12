@@ -18,7 +18,7 @@ func main() {
 
 	elvesFoods := strings.Split(data, "\n\n")
 	elvesFoods2 := array.Map(elvesFoods, func(s string) []int { return array.Map(strings.Split(s, "\n"), StrToInt) })
-	elvesFoodsTotals := array.Map(elvesFoods2, func(nums []int) int { return array.Sum(nums) })
+	elvesFoodsTotals := array.Map(elvesFoods2, array.Sum)
 
 	fmt.Println(array.Max(elvesFoodsTotals))
 
