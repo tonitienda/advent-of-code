@@ -22,7 +22,7 @@ func GetLines(year int, day int, filename string) []string {
 	return strings.Split(GetContents(year, day, filename), "\n")
 }
 
-func Get2DMatrix[O int | float32](data string, splitRow, splitCol string, fn func(string) O) [][]O {
+func Get2DMatrix[O int | float32 | string | rune](data string, splitRow, splitCol string, fn func(string) O) [][]O {
 	rows := strings.Split(data, splitRow)
 
 	result := make([][]O, len(rows))
