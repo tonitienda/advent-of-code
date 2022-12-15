@@ -127,5 +127,5 @@ func main() {
 
 	}
 
-	fmt.Println(minSteps)
+	fmt.Println(minSteps - 1)
 }
