@@ -15,6 +15,9 @@ II -- 1 --- JJ
 
 ```
 
+Total nodes: 10.
+
+
 ### New
 
 ```mermaid
@@ -42,3 +45,5 @@ EE -- 4 --- JJ
 HH -- 7 --- JJ
 
 ```
+
+Total nodes: 7.

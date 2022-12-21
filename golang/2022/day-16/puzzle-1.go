@@ -195,7 +195,7 @@ func getMarkDown(valves []Valve, index map[string]Valve) string {
 
 func main() {
 
-	execType := "input"
+	execType := "test"
 	data := input.GetLines(2022, 16, execType+".txt")
 
 	valves := array.Map(data, getValve)
