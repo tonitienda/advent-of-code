@@ -4,6 +4,7 @@ import (
 	"advent/utils/array"
 	"advent/utils/funct"
 	"advent/utils/input"
+	"advent/utils/output"
 	"fmt"
 	"math"
 	"strconv"
@@ -15,14 +16,18 @@ func StrToInt(str string) int {
 }
 
 type Valve struct {
-	id       string
-	rate     int
-	children []string
-	isOpen   bool
+	id    string
+	rate  int
+	edges []Edge
+}
+
+type Edge struct {
+	destId string
+	cost   int
 }
 
 func (v Valve) String() string {
-	return fmt.Sprintf("%s (%d) -> %s", v.id, v.rate, v.children)
+	return fmt.Sprintf("%s (%d) -> %s", v.id, v.rate, v.edges)
 
 }
 
@@ -43,20 +48,10 @@ func getValve(line string) Valve {
 	connections := strings.Split(parts[2], ",")
 
 	return Valve{
-		id:       id,
-		rate:     StrToInt(rate),
-		children: connections,
+		id:    id,
+		rate:  StrToInt(rate),
+		edges: array.Map(connections, func(conn string) Edge { return Edge{destId: conn, cost: 1} }),
 	}
-}
-
-func tabs(num int) string {
-	tabs := ""
-
-	for i := 0; i < num; i++ {
-		tabs += "  "
-	}
-
-	return tabs
 }
 
 func calculateMinDistance(valve1, valve2 string, index map[string]Valve, cost int, path []string) (int, []string, bool) {
@@ -69,7 +64,8 @@ func calculateMinDistance(valve1, valve2 string, index map[string]Valve, cost in
 
 	//fmt.Println(tabs(len(path)), valve1, "=>", valve2, "children", valve.children, ":", path)
 
-	if includes(valve.children, valve2) {
+	children := array.Map(valve.edges, func(e Edge) string { return e.destId })
+	if includes(children, valve2) {
 		return cost + 1, append(path, valve2), true
 	}
 
@@ -77,14 +73,14 @@ func calculateMinDistance(valve1, valve2 string, index map[string]Valve, cost in
 	minPath := []string{}
 
 	atLeastOnePathFound := false
-	for _, child := range valve.children {
+	for _, edge := range valve.edges {
 
 		// Avoid cycles
-		if includes(path, child) {
+		if includes(path, edge.destId) {
 			continue
 		}
 
-		cost, newPath, ok := calculateMinDistance(child, valve2, index, cost+1, append(path, child))
+		cost, newPath, ok := calculateMinDistance(edge.destId, valve2, index, cost+1, append(path, edge.destId))
 		atLeastOnePathFound = atLeastOnePathFound || ok
 
 		if ok {
@@ -118,30 +114,9 @@ func includes(arr []string, val string) bool {
 	return false
 }
 
-func printValves(valves []Valve) {
-	for _, valve := range valves {
-		fmt.Println(valve)
-	}
-}
-
-func printDistances(distances map[string][]Distance) {
-	for key, dists := range distances {
-		for _, dist := range dists {
-			fmt.Println(key, "=>", dist.dest, dist.path)
-		}
-	}
-}
-
-type Distance struct {
-	dest        string
-	cost        int
-	maxPressure int
-	path        []string
-}
-
 func allVisited(index map[string]Valve, visited map[string]bool) bool {
 	for key, _ := range index {
-		if index[key].rate > 0 && !visited[key] {
+		if !visited[key] {
 			return false
 		}
 	}
@@ -149,54 +124,79 @@ func allVisited(index map[string]Valve, visited map[string]bool) bool {
 	return true
 }
 
-func bruteForce(origin string, index map[string]Valve, distances map[string][]Distance, availableMinutes int, accPressure int, fullPath []string, visited map[string]bool) (int, []string) {
+var iterations int = 0
 
+func bruteForce(origin string, index map[string]Valve, availableMinutes int, accPressure int, visited map[string]bool) int {
+	iterations++
 	if availableMinutes <= 0 || allVisited(index, visited) {
-		return accPressure, fullPath
+		return accPressure
 	}
 
-	reachableNodes := distances[origin]
+	valve := index[origin]
+	edges := valve.edges
+
 	//fmt.Println("From", origin, "walking", len(reachableNodes), "nodes")
 
 	maxPressure := 0
-	bestPath := []string{}
 
-	for _, reachableNode := range reachableNodes {
-		if !visited[reachableNode.dest] {
+	for _, edge := range edges {
+		if !visited[edge.destId] {
 
 			// 1 minute for each node we visit to read destination
-			minutesSpent := len(reachableNode.path)
+			minutesSpent := edge.cost
 			pressureAcc := 0
 
-			node := index[reachableNode.dest]
+			destNode := index[edge.destId]
 
-			// We do not open valves for nodes already visited
-			// The only have the valve open the first time
-			if node.rate > 0 {
+			// This should always be true, since we removed the nodes that do not have value
+			if destNode.rate > 0 {
 				// 1m Opening the valve
 				minutesSpent++
-				pressureAcc = node.rate * (availableMinutes - minutesSpent)
+				pressureAcc = destNode.rate * (availableMinutes - minutesSpent)
 			}
 			//}
-			visited[node.id] = true
-			pressure, path := bruteForce(reachableNode.dest, index, distances, availableMinutes-minutesSpent, accPressure+pressureAcc, append(fullPath, reachableNode.path...), visited)
-			visited[node.id] = false
+			visited[destNode.id] = true
+			pressure := bruteForce(destNode.id, index, availableMinutes-minutesSpent, accPressure+pressureAcc, visited)
+			visited[destNode.id] = false
 
 			if pressure > maxPressure {
 				maxPressure = pressure
-				bestPath = path
 			}
 		}
 
 	}
 
 	//fmt.Println("Current max:", maxPressure, bestPath)
-	return maxPressure, bestPath
+	return maxPressure
+}
+
+func getMarkDown(valves []Valve, index map[string]Valve) string {
+	contents := "```mermaid\nflowchart LR\n"
+
+	printed := map[string]bool{}
+	for _, valve := range valves {
+		for _, edge := range valve.edges {
+			reverseEdgeId := edge.destId + "_" + valve.id
+			edgeId := valve.id + "_" + edge.destId
+
+			if !printed[reverseEdgeId] {
+				contents += valve.id + " -- " + strconv.Itoa(edge.cost) + " --- " + edge.destId + "\n"
+				printed[edgeId] = true
+			}
+		}
+	}
+
+	contents += "\n```\n\n"
+
+	contents += "Total nodes: " + strconv.Itoa(len(valves)) + ".\n"
+
+	return contents
 }
 
 func main() {
 
-	data := input.GetLines(2022, 16, "input.txt")
+	execType := "input"
+	data := input.GetLines(2022, 16, execType+".txt")
 
 	valves := array.Map(data, getValve)
 
@@ -204,34 +204,39 @@ func main() {
 
 	fmt.Println(index)
 
-	distances := map[string][]Distance{}
-
-	for _, valve := range valves {
-		distances[valve.id] = []Distance{}
-	}
+	valves2 := []Valve{}
 
 	// We only care about destinations that bring value
 	for _, valve1 := range valves {
-		for _, valve2 := range valves {
-			if valve1.id != valve2.id && valve2.rate > 0 {
-				minCost, minPath, _ := calculateMinDistance(valve1.id, valve2.id, index, 0, []string{})
-				distances[valve1.id] = append(distances[valve1.id], Distance{dest: valve2.id, path: minPath, cost: minCost})
+		if valve1.rate > 0 || valve1.id == "AA" {
+			valve := Valve{id: valve1.id, rate: valve1.rate, edges: []Edge{}}
+			for _, valve2 := range valves {
+				if valve1.id != valve2.id && valve2.rate > 0 {
+					_, minPath, _ := calculateMinDistance(valve1.id, valve2.id, index, 0, []string{})
+					valve.edges = append(valve.edges, Edge{destId: valve2.id, cost: len(minPath)})
+				}
 
 			}
-
+			valves2 = append(valves2, valve)
 		}
-
 	}
 
-	printDistances(distances)
-	fmt.Println(len(distances))
+	originalValves := getMarkDown(valves, index)
+	calculatedValves := getMarkDown(valves2, index)
+
+	document := "### Original\n\n" + originalValves + "\n\n### New\n\n" + calculatedValves
+
+	output.WriteContents(2022, 16, execType+".md", document)
+
 	visited := map[string]bool{}
 	visited["AA"] = true
 
+	index2 := makeValveMap(valves2)
+
 	fmt.Println("---")
-	result, path := bruteForce("AA", index, distances, 30, 0, []string{"AA"}, visited)
+	result := bruteForce("AA", index2, 30, 0, visited)
 	fmt.Println("---")
 
-	fmt.Println(result, path)
+	fmt.Println(result, "(", iterations, ")")
 
 }
