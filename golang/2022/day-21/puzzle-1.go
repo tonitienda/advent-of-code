@@ -13,22 +13,6 @@ func StrToInt(str string) int {
 	return funct.GetValue(strconv.Atoi(str))
 }
 
-func add(mId1, mId2 string, index map[string]Monkey) int {
-	return index[mId1].calculate(index) + index[mId2].calculate(index)
-}
-
-func subract(mId1, mId2 string, index map[string]Monkey) int {
-	return index[mId1].calculate(index) - index[mId2].calculate(index)
-}
-
-func divide(mId1, mId2 string, index map[string]Monkey) int {
-	return index[mId1].calculate(index) / index[mId2].calculate(index)
-}
-
-func multiply(mId1, mId2 string, index map[string]Monkey) int {
-	return index[mId1].calculate(index) * index[mId2].calculate(index)
-}
-
 type Monkey struct {
 	id        string
 	value     int
@@ -36,15 +20,14 @@ type Monkey struct {
 	m1        string
 	operation string
 	m2        string
+	m1r       *Monkey
+	m2r       *Monkey
 }
 
 func getMonkey(line string) Monkey {
 
-	fmt.Println(line)
-
 	data := strings.Split(line, ":")
 
-	fmt.Println(data)
 	monkeyId := data[0]
 
 	data2 := strings.Split(strings.Trim(data[1], " "), " ")
@@ -76,26 +59,6 @@ func getMonkey(line string) Monkey {
 	}
 }
 
-func (monkey Monkey) calculate(index map[string]Monkey) int {
-
-	if monkey.isSolved {
-		return monkey.value
-	}
-
-	switch monkey.operation {
-	case "+":
-		return add(monkey.m1, monkey.m2, index)
-	case "-":
-		return subract(monkey.m1, monkey.m2, index)
-	case "*":
-		return multiply(monkey.m1, monkey.m2, index)
-	case "/":
-		return divide(monkey.m1, monkey.m2, index)
-	}
-
-	panic("Not sure what to do")
-}
-
 func makeMonkeyMap(monkeys []Monkey) map[string]Monkey {
 	index := map[string]Monkey{}
 
@@ -106,25 +69,60 @@ func makeMonkeyMap(monkeys []Monkey) map[string]Monkey {
 	return index
 }
 
-func getMonkeyValue(monkeyId string, index map[string]Monkey) int {
-
-	monkey := index["root"]
-
-	return monkey.calculate(index)
-
-}
-
 func main() {
 
 	execType := "input"
 	data := input.GetLines(2022, 21, execType+".txt")
 
 	monkeys := array.Map(data, getMonkey)
-
-	//fmt.Println(monkeys)
-
 	index := makeMonkeyMap(monkeys)
 
-	fmt.Println(getMonkeyValue("root", index))
+	index2 := map[string]func() int{}
+	index3 := map[string]bool{}
+
+	for !index3["root"] {
+		for key, monkey := range index {
+			if !index3[key] {
+				if monkey.isSolved {
+					index2[key] = func(monkey Monkey) func() int { return func() int { return monkey.value } }(monkey)
+					index3[key] = true
+				} else {
+					// The monkey needs other monkeys data
+					f1, ok1 := index2[monkey.m1]
+					f2, ok2 := index2[monkey.m2]
+
+					if ok1 && ok2 {
+						switch monkey.operation {
+						case "+":
+							index2[key] = func(f1, f2 func() int, m1, m2 string) func() int {
+								return func() int { return f1() + f2() }
+							}(f1, f2, monkey.m1, monkey.m2)
+						case "-":
+							index2[key] = func(f1, f2 func() int, m1, m2 string) func() int {
+								return func() int { return f1() - f2() }
+							}(f1, f2, monkey.m1, monkey.m2)
+						case "*":
+							index2[key] = func(f1, f2 func() int, m1, m2 string) func() int {
+								return func() int { return f1() * f2() }
+							}(f1, f2, monkey.m1, monkey.m2)
+						case "/":
+							index2[key] = func(f1, f2 func() int, m1, m2 string) func() int {
+								return func() int { return f1() / f2() }
+							}(f1, f2, monkey.m1, monkey.m2)
+						case "=":
+							index2[key] = func(f1, f2 func() int) func() int {
+								return func() int { return f1() - f2() }
+							}(f1, f2)
+						}
+
+						index3[key] = true
+					}
+				}
+			}
+		}
+
+	}
+	f := index2["root"]
+	fmt.Println(f())
 
 }
