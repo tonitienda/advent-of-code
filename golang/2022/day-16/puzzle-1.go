@@ -55,7 +55,7 @@ func getValve(line string) Valve {
 }
 
 func calculateMinDistance(valve1, valve2 string, index map[string]Valve, cost int, path []string) (int, []string, bool) {
-	//fmt.Println(valve1, "==", valve2)
+
 	if valve1 == valve2 {
 		return cost, path, true
 	}
@@ -64,8 +64,8 @@ func calculateMinDistance(valve1, valve2 string, index map[string]Valve, cost in
 
 	//fmt.Println(tabs(len(path)), valve1, "=>", valve2, "children", valve.children, ":", path)
 
-	children := array.Map(valve.edges, func(e Edge) string { return e.destId })
-	if includes(children, valve2) {
+	edges := array.Map(valve.edges, func(e Edge) string { return e.destId })
+	if includes(edges, valve2) {
 		return cost + 1, append(path, valve2), true
 	}
 
@@ -137,7 +137,7 @@ func bruteForce(origin string, index map[string]Valve, availableMinutes int, acc
 
 	//fmt.Println("From", origin, "walking", len(reachableNodes), "nodes")
 
-	maxPressure := 0
+	maxPressure := accPressure
 
 	for _, edge := range edges {
 		if !visited[edge.destId] {
@@ -154,7 +154,11 @@ func bruteForce(origin string, index map[string]Valve, availableMinutes int, acc
 				minutesSpent++
 				pressureAcc = destNode.rate * (availableMinutes - minutesSpent)
 			}
-			//}
+
+			if availableMinutes-minutesSpent <= 0 {
+				continue
+			}
+
 			visited[destNode.id] = true
 			pressure := bruteForce(destNode.id, index, availableMinutes-minutesSpent, accPressure+pressureAcc, visited)
 			visited[destNode.id] = false
@@ -195,7 +199,7 @@ func getMarkDown(valves []Valve, index map[string]Valve) string {
 
 func main() {
 
-	execType := "test"
+	execType := "input"
 	data := input.GetLines(2022, 16, execType+".txt")
 
 	valves := array.Map(data, getValve)
