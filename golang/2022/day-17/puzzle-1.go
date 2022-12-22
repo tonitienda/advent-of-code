@@ -105,7 +105,7 @@ func main() {
 	shapeCount := 0
 	lastRowWithFallenRocks := 0
 
-	for {
+	for i := 0; i < 2022; i++ {
 		// Falling means going from the end of the board to the beginning
 
 		currentShape := Shapes[shapeCount%5]
@@ -117,7 +117,7 @@ func main() {
 			board = append(board, 0)
 		}
 
-		printBoard(board)
+		//printBoard(board)
 
 		row := findCollission(currentShape.structure, board)
 		lastRowWithFallenRocks = row + len(currentShape.structure) - 1
@@ -126,13 +126,14 @@ func main() {
 			board[row-i] |= currentShape.structure[i]
 		}
 
-		printBoard(board)
-		fmt.Println()
+		// printBoard(board)
+		// fmt.Println()
 		shapeCount++
 
-		if shapeCount > 2 {
-			return
-		}
 	}
+
+	printBoard(board)
+	fmt.Println(shapeCount, "shapes")
+	fmt.Println(lastRowWithFallenRocks, "lastRowWithFallenRocks")
 
 }
