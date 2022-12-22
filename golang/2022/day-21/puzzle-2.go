@@ -166,43 +166,4 @@ func main() {
 		}
 	}
 
-	secondsPerMillion := 2
-	cpus := 8
-
-	totalSeconds := (math.MaxInt / cpus / 1000000) * secondsPerMillion
-
-	days := totalSeconds / 3600 / 24
-
-	years := days / 365
-	fmt.Println(days, "days")
-	fmt.Println(years, "years")
-
-	// fmt.Println("root", root)
-	// fmt.Println("humn", humn)
-	// root.operation = "="
-
-	// fmt.Println("root", root)
-
-	// fmt.Println("pppw", pppw)
-
-	// //	fmt.Println("!!===>", monkey.id, monkey1, monkey2)
-
-	// for i := 0; i < math.MaxInt; i++ {
-	// 	//	if i%10000 == 0 {
-	// 	fmt.Println("Trying with", i)
-	// 	//	}
-
-	// 	humn.value = i
-
-	// 	//fmt.Println("HUMN value", humn.value)
-	// 	fmt.Println("Here")
-	// 	rootValue := root.calculate()
-
-	// 	// Equality check
-	// 	if rootValue == 0 {
-	// 		fmt.Println("HUMN value was", humn.value)
-	// 		return
-	// 	}
-	// }
-
 }
