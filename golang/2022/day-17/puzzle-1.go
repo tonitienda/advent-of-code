@@ -88,36 +88,36 @@ func printRow(row int) {
 // 7 bits
 var maxNumber = 127
 
-func moveRight(shape []int) []int {
+func moveRight(shape []int) ([]int, bool) {
 	newShape := []int{}
 	for i := 0; i < len(shape); i++ {
 		// If the number is even, it means there is a 1
 		// in position 0 so we cannot divide further
 		if shape[i]%2 == 1 {
-			return shape
+			return shape, false
 		}
 		n := shape[i] >> 1
 
 		newShape = append(newShape, n)
 	}
 
-	return newShape
+	return newShape, true
 }
 
-func moveLeft(shape []int) []int {
+func moveLeft(shape []int) ([]int, bool) {
 	newShape := []int{}
 	for i := 0; i < len(shape); i++ {
 		n := shape[i] << 1
 
 		// If the shape goes beyond limits, return the original shape
 		if n > maxNumber {
-			return shape
+			return shape, false
 		}
 
 		newShape = append(newShape, n)
 	}
 
-	return newShape
+	return newShape, true
 }
 
 func shapeCollides(board, shape []int, row int) bool {
@@ -131,58 +131,109 @@ func shapeCollides(board, shape []int, row int) bool {
 	return false
 }
 
-func move(board, shape []int, movement string, row int) []int {
-	newShape := shape
+func move(board, shape []int, movement string, row int) ([]int, bool) {
 
 	if movement == ">" {
 		fmt.Println("Jet of gas pushes rock right:")
-		newShape = moveRight(shape)
+		return moveRight(shape)
 	} else if movement == "<" {
 		fmt.Println("Jet of gas pushes rock left:")
-
-		newShape = moveLeft(shape)
+		return moveLeft(shape)
 	}
 
-	collides := shapeCollides(board, newShape, row)
-
-	if collides {
-		return shape
-	}
-
-	return newShape
-
+	panic(movement + " not supported")
 }
 
 // TODO - For now we ignore the pieces moving
 func placeShape(shape []int, board []int, movements []string, movementIdx int) (int, []int, int) {
-	fmt.Println("The rock begins falling:", movementIdx)
-	printBoard(shape)
+	boardHeight := len(board)
+	shapeHeight := len(shape)
+	fmt.Println("The rock begins falling from", boardHeight-1)
 
-	for boardRow := len(board) - 1; boardRow >= len(shape)-1; boardRow-- {
-		fmt.Println("Row:", boardRow)
-		// Move shape based on movements
-		movement := movements[movementIdx]
+	for row := boardHeight - 1; row >= shapeHeight; row-- {
 
-		shape = move(board, shape, movement, boardRow)
-		movementIdx = (movementIdx + 1) % len(movements)
+		fmt.Println("Move down", row)
+		printBoard(addShape(board, shape, row))
+		fmt.Println()
 
-		if shapeCollides(board, shape, boardRow) {
-			// Try to move again and see if it does not collide
-			shape2 := move(board, shape, movements[movementIdx], boardRow-1)
-			collidesAgain := shapeCollides(board, shape2, boardRow)
+		// If the next position collides, we try to move and see if we can go on
+		// if not, return
+		nextPositionCollides := shapeCollides(board, shape, row-1)
 
-			if collidesAgain {
-				return boardRow + 1, shape, movementIdx
-			} else {
-				movementIdx = (movementIdx + 1) % len(movements)
-				shape = shape2
+		if nextPositionCollides {
+			movedShape, couldMove := move(board, shape, movements[movementIdx], row)
+
+			if !couldMove {
+				fmt.Println("Collided at ", row, "returning", row)
+				return row, shape, movementIdx
 			}
+			nextNextPositionCollides := shapeCollides(board, movedShape, row-1)
+
+			if nextNextPositionCollides {
+				fmt.Println("Collided at ", row, "returning", row)
+				movementIdx = (movementIdx + 1) % len(movements)
+
+				return row, movedShape, movementIdx
+			}
+
+			shape = movedShape
+			movementIdx = (movementIdx + 1) % len(movements)
 		}
 
+		// Get next movement
+		movement := movements[movementIdx]
+
+		// Try to move piece horizontally
+		movedShape, couldMove := move(board, shape, movement, row)
+
+		// If the shape could move (did not go out of bounds)
+		// and the new location does not collide with other shapes
+		// The shape is moved
+		newPositionCollides := shapeCollides(board, movedShape, row)
+		if couldMove && !newPositionCollides {
+			shape = movedShape
+		}
+
+		movementIdx = (movementIdx + 1) % len(movements)
+
+		// // If the shape is going to collide in the next step down
+		// if shapeCollides(board, shape, row-1) {
+		// 	newShape, canMoveAgain := move(board, shape, movements[movementIdx], row)
+
+		// 	if canMoveAgain {
+		// 		fmt.Println("Shape collides but can move one more time")
+		// 		shape = newShape
+		// 		movementIdx = (movementIdx + 1) % len(movements)
+
+		// 		continue
+		// 	}
+
+		// 	fmt.Println("Shape collides and cannot move again")
+		// 	return row, shape, movementIdx
+
+		// }
+
 	}
+
+	bottomRow := len(shape) - 1
+	newShape, _ := move(board, shape, movements[movementIdx], bottomRow)
 	fmt.Println("No Collission. Returning ", len(shape)-1)
 
-	return len(shape) - 1, shape, movementIdx
+	return bottomRow, newShape, movementIdx + 1
+}
+
+func addShape(board, shape []int, row int) []int {
+	newBoard := []int{}
+
+	for i := 0; i < len(board); i++ {
+		newBoard = append(newBoard, board[i])
+	}
+	// Update the board with the shape in rest
+	for i := 0; i < len(shape); i++ {
+		newBoard[row-i] |= shape[i]
+	}
+
+	return newBoard
 }
 
 func main() {
@@ -197,32 +248,28 @@ func main() {
 	lastRowWithFallenRocks := 0
 	movementIdx := 0
 
-	for i := 0; i < 2022; i++ {
+	for shapeIdx := 0; shapeIdx < 2022; shapeIdx++ {
 		// Falling means going from the end of the board to the beginning
 
-		currentShape := Shapes[shapeCount%5]
+		currentShape := Shapes[shapeIdx%5]
 		freeRows := len(board) - lastRowWithFallenRocks
 		requiredFreeRows := 3 + len(currentShape.structure)
 
-		fmt.Println("requiredFreeRows", requiredFreeRows, "freeRows", freeRows)
+		fmt.Println("lastRowWithFallenRocks", lastRowWithFallenRocks, "Freerows:", freeRows, "RequiredFreeRows:", requiredFreeRows)
+
 		for i := 0; i < requiredFreeRows-freeRows; i++ {
 			board = append(board, 0)
 		}
 
-		//printBoard(board)
-
 		row, shape, newMovementIdx := placeShape(currentShape.structure, board, movements, movementIdx)
 		movementIdx = newMovementIdx
-		lastRowWithFallenRocks = row + len(currentShape.structure) - 1
-		fmt.Println("Collission at:", row)
-		for i := 0; i < len(shape); i++ {
-			board[row-i] |= shape[i]
-		}
+		lastRowWithFallenRocks = row + len(shape)
+		// Update the board with the shape in rest
+		board = addShape(board, shape, row)
 
 		printBoard(board)
 		fmt.Println()
-		shapeCount++
-		if shapeCount > 2 {
+		if shapeIdx >= 2 {
 			break
 		}
 
