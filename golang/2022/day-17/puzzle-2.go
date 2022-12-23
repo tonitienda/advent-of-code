@@ -218,7 +218,7 @@ func main() {
 	lastRowWithFallenRocks := 0
 	movementIdx := 0
 
-	for shapeIdx = 0; shapeIdx < 2022; shapeIdx++ {
+	for shapeIdx = 0; shapeIdx < 10000; shapeIdx++ {
 		// Falling means going from the end of the board to the beginning
 
 		currentShape := Shapes[shapeIdx%5]
