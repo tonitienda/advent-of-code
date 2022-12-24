@@ -218,9 +218,8 @@ func main() {
 	lastRowWithFallenRocks := 0
 	movementIdx := 0
 
-	for shapeIdx = 0; shapeIdx < 10000; shapeIdx++ {
+	for shapeIdx = 0; shapeIdx < 1000000; shapeIdx++ {
 		// Falling means going from the end of the board to the beginning
-
 		currentShape := Shapes[shapeIdx%5]
 
 		for i := 0; i < len(board); i++ {
@@ -262,6 +261,11 @@ func main() {
 		// Update the board with the shape in rest
 		board = addShape(board, shape, row)
 
+		if board[row] == 7 {
+			fmt.Println("Row is complete")
+			return
+
+		}
 		// printBoard(board)
 		// fmt.Println()
 		// if shapeIdx >= 9 {

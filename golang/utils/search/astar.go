@@ -55,7 +55,7 @@ func isSameCell(n1, n2 [2]int) bool {
 func AStar[T rune | int](start, goal [2]int, grid [][]T, getNeighbours func(node [2]int, grid [][]T) [][2]int) [][2]int {
 
 	// List of nodes pending to be analyzed
-	openList := []Node{Node{
+	openList := []Node{{
 		node: start,
 		g:    0,
 		h:    0,

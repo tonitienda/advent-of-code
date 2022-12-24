@@ -36,7 +36,9 @@ func (robot Robot) prepareRobot(resources map[string]int) (map[string]int, Robot
 func (robot Robot) consume(resources map[string]int) map[string]int {
 	newResources := resources
 
+	fmt.Println("\tBuilding ", robot.resource)
 	for key, cost := range robot.costs {
+		fmt.Println("\tConsuming", key, "=", cost)
 		newResources[key] -= cost
 	}
 
@@ -55,7 +57,7 @@ func (robot Robot) consume(resources map[string]int) map[string]int {
 
 type Blueprint struct {
 	id     int
-	robots []Robot
+	robots map[string]Robot
 }
 
 func getRobot(line string) Robot {
@@ -89,10 +91,11 @@ func getBluePrint(line string) Blueprint {
 	id := StrToInt(data[0])
 	robotLines := strings.Split(strings.ReplaceAll(strings.ReplaceAll(data[1], " Each ", ""), " robot costs", ""), ".")
 
-	robotsBlueprint := []Robot{}
+	robotsBlueprint := map[string]Robot{}
 	for _, robotLine := range robotLines {
 		if robotLine != "" {
-			robotsBlueprint = append(robotsBlueprint, getRobot(robotLine))
+			robot := getRobot(robotLine)
+			robotsBlueprint[robot.resource] = robot
 		}
 	}
 
@@ -104,28 +107,52 @@ func getBluePrint(line string) Blueprint {
 	}
 }
 
-func getBuildableRobots(blueprint Blueprint, resources map[string]int) []Robot {
-	robots := []Robot{}
-	for _, robotBlueprint := range blueprint.robots {
+func getBuildableDeps(robot Robot, blueprint Blueprint, resources map[string]int) []Robot {
 
-		_, robot, wasBuilt := robotBlueprint.prepareRobot(resources)
-		if wasBuilt {
-			robots = append(robots, robot)
-		}
+	robots := []Robot{}
+
+	_, _, wasBuilt := robot.prepareRobot(resources)
+
+	if wasBuilt {
+		robots = append(robots, robot)
+		return robots
 	}
+
+	for res, _ := range robot.costs {
+		dep := blueprint.robots[res]
+
+		// Robot depends on itself
+		if dep.resource == robot.resource {
+			continue
+		}
+
+		robots = append(robots, getBuildableDeps(dep, blueprint, resources)...)
+	}
+
+	return robots
+
+}
+
+func getBuildableRobots(blueprint Blueprint, resources map[string]int) []Robot {
+
+	// Try  to build Geode robots first
+	geode := blueprint.robots["geode"]
+
+	robots := getBuildableDeps(geode, blueprint, resources)
+
+	fmt.Println("Buildable robots", robots, "resources", resources)
 	return robots
 }
 
 func calculateMaxOreOutcome(iterations int, blueprint Blueprint, robots map[string]int, resources map[string]int) int {
 
+	fmt.Println("Resources:", resources)
 	if iterations <= 0 {
 		return resources["geode"]
 	}
 
 	// fmt.Printf("== Minute %d == \n", 25-iterations)
 	// fmt.Println("Current geode", resources["geode"])
-
-	maxGeodeOpened := 0
 
 	// Build robots
 	// TODO - We consider that we can build one robot of each kind
@@ -135,8 +162,6 @@ func calculateMaxOreOutcome(iterations int, blueprint Blueprint, robots map[stri
 	// Collect resources
 	for key, units := range robots {
 		resources[key] += units
-		//fmt.Printf("%d %s-collecting robot collects %d %s; you now have %d %s.\n", units, key, units, key, resources[key], key)
-
 	}
 
 	if len(buildableRobots) == 0 {
@@ -149,10 +174,13 @@ func calculateMaxOreOutcome(iterations int, blueprint Blueprint, robots map[stri
 		return calculateMaxOreOutcome(iterations-1, blueprint, robots, newResources)
 	}
 
+	// Simulate that we do not build any robot (saving for more expensive ones)
+
+	maxGeodeOpened := calculateMaxOreOutcome(iterations-1, blueprint, robots, resources)
+	fmt.Println("WE ALSO REACH THIS CODE")
+
 	//fmt.Println("\nBuildable robots:", len(buildableRobots), "\n")
 	for _, robot := range buildableRobots {
-		robots[robot.resource]++
-		//fmt.Printf("The new %s-collecting robot is ready; you now have %d of them.\n", robot.resource, robots[robot.resource])
 
 		// Cloning resources map
 		newResources := map[string]int{}
@@ -160,6 +188,8 @@ func calculateMaxOreOutcome(iterations int, blueprint Blueprint, robots map[stri
 			newResources[key] = count
 		}
 
+		robots[robot.resource]++
+		//fmt.Printf("The new %s-collecting robot is ready; you now have %d of them.\n", robot.resource, robots[robot.resource])
 		geodeOpened := calculateMaxOreOutcome(iterations-1, blueprint, robots, robot.consume(newResources))
 		robots[robot.resource]--
 
@@ -183,7 +213,7 @@ func main() {
 
 	initialResources := map[string]int{}
 
-	oreProduced := calculateMaxOreOutcome(22, bluePrint, robots, initialResources)
+	oreProduced := calculateMaxOreOutcome(12, bluePrint, robots, initialResources)
 
 	// fmt.Println(bluePrints)
 	fmt.Println("Geode opened", oreProduced)
