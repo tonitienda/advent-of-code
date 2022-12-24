@@ -125,9 +125,10 @@ func main() {
 
 	fmt.Printf("\n== Initial state ==\n")
 	printBoard(board)
-
-	for i := 0; i < 10; i++ {
-
+	round := 0
+	for {
+		round++
+		elfMoved := false
 		nextMove := NextMoves{}
 
 		for elf, _ := range board {
@@ -144,9 +145,14 @@ func main() {
 
 		for _, elves := range nextMove {
 			if len(elves) == 1 {
+				elfMoved = true
 				elf := Elf{row: elves[0].row, col: elves[0].col}
 				delete(board, elf)
 			}
+		}
+
+		if !elfMoved {
+			break
 		}
 
 		for dest, elves := range nextMove {
@@ -155,8 +161,8 @@ func main() {
 			}
 		}
 
-		fmt.Printf("\n== End of Round %d ==\n", i+1)
-		printBoard(board)
+		// fmt.Printf("\n== End of Round %d ==\n", i+1)
+		// printBoard(board)
 
 		check := checks[0]
 		checks = append(checks[1:], check)
@@ -198,7 +204,8 @@ func main() {
 	}
 	fmt.Println("elves", elves)
 
-	fmt.Print(area - elves)
+	fmt.Println(area - elves)
+	fmt.Println("Total rounds:", round)
 
 	// board := Board{}
 
