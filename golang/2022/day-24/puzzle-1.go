@@ -50,6 +50,10 @@ type Node struct {
 	f      float64
 }
 
+func (node Node) ToString() string {
+	return fmt.Sprintf("{%d, %d}, m: %d", node.node.row, node.node.col, node.minute)
+}
+
 var cachedNeighbours = map[int]map[Cell][]Cell{}
 
 func findNeighboursAsOf(cell Cell, minutes int) []Cell {
@@ -76,23 +80,32 @@ func findNeighbours(cell Cell, board [][]int) []Cell {
 	// Down and right
 
 	// down
-	if cell.row < len(board)-1 && board[cell.row+1][cell.col] == 0 {
-		neighbours = append(neighbours, Cell{row: cell.row + 1, col: cell.col})
+	if cell.col > 0 && cell.col < len(board[cell.row]) {
+		if cell.row < len(board)-1 && board[cell.row+1][cell.col] == 0 {
+			neighbours = append(neighbours, Cell{row: cell.row + 1, col: cell.col})
+		}
 	}
 
 	// right
-	if cell.col < len(board[0])-1 && board[cell.row][cell.col+1] == 0 {
-		neighbours = append(neighbours, Cell{row: cell.row, col: cell.col + 1})
+	if cell.row > 0 && cell.row < len(board)-1 {
+		if cell.col < len(board[0])-1 && board[cell.row][cell.col+1] == 0 {
+			neighbours = append(neighbours, Cell{row: cell.row, col: cell.col + 1})
+		}
 	}
 
 	// up
-	if cell.row > 0 && board[cell.row-1][cell.col] == 0 {
-		neighbours = append(neighbours, Cell{row: cell.row - 1, col: cell.col})
+	if cell.col > 0 && cell.col < len(board[cell.row]) {
+		if cell.row > 1 && board[cell.row-1][cell.col] == 0 {
+			neighbours = append(neighbours, Cell{row: cell.row - 1, col: cell.col})
+		}
 	}
 
 	// left
-	if cell.col > 0 && board[cell.row][cell.col-1] == 0 {
-		neighbours = append(neighbours, Cell{row: cell.row, col: cell.col - 1})
+	if cell.row > 0 && cell.row < len(board)-1 {
+
+		if cell.col > 1 && board[cell.row][cell.col-1] == 0 {
+			neighbours = append(neighbours, Cell{row: cell.row, col: cell.col - 1})
+		}
 	}
 
 	return neighbours
@@ -234,7 +247,7 @@ func findIndex(list []Node, node Node) int {
 	return -1
 }
 
-func Astar(start Cell, goal Cell, board [][]int, minutes int) (int, bool) {
+func Astar(start Cell, goal Cell, board [][]int, minutes int) (Node, int, bool) {
 	// List of nodes pending to be analyzed
 
 	openList := []Node{{
@@ -252,11 +265,13 @@ func Astar(start Cell, goal Cell, board [][]int, minutes int) (int, bool) {
 	for len(openList) > 0 {
 		// Pop node with lowest f (cost)
 		currentNode := openList[0]
-		minutes = currentNode.minute
-
 		openList = openList[1:]
 
-		fmt.Println(currentNode.node, "openList", len(openList))
+		minutes = currentNode.minute
+
+		// fmt.Println(currentNode.node, "openList", len(openList))
+
+		//printBoard(getBoardAsOf(currentNode.minute), currentNode.node)
 
 		// Get neighbours
 		// TODO - We can wait even if there are neighbours
@@ -267,17 +282,19 @@ func Astar(start Cell, goal Cell, board [][]int, minutes int) (int, bool) {
 			minutes++
 		}
 
+		// fmt.Println("n", neighbours)
+		// We can add to the successors the current node with + 1 minute
+		// Since we can wait instead of move
 		successors := array.Map(neighbours, func(n Cell) Node { return Node{node: n, parent: &currentNode, minute: minutes} })
+		successors = append(successors, Node{node: currentNode.node, parent: currentNode.parent, minute: minutes})
 
+		// fmt.Println("s", neighbours)
 		// Compute successors
 		for _, successor := range successors {
 
 			// We found the goal
 			if isSameCell(successor.node, goal) {
-				//return reconstructPath(successor)
-
-				// TODO - Not sure about this
-				return minutes, true
+				return successor, minutes, true
 			}
 
 			// Compute G: distance to origin
@@ -310,6 +327,10 @@ func Astar(start Cell, goal Cell, board [][]int, minutes int) (int, bool) {
 					openList[indexOfSuccessor] = successor
 				}
 			}
+
+			// fmt.Println("o", openList)
+			// fmt.Println("minute", minutes)
+			//	panic("here")
 		}
 
 		//fmt.Println("old:", array.Map(openList, func(n Node) float64 { return n.f }))
@@ -324,85 +345,20 @@ func Astar(start Cell, goal Cell, board [][]int, minutes int) (int, bool) {
 		closedList = append(closedList, currentNode)
 	}
 
-	return 0, false
+	return Node{}, 0, false
 
 }
 
-// func findShortestPath(currentNode Cell, goal Cell, board [][]int, minutes int, visited map[int]map[Cell]bool) (int, bool) {
-// 	fmt.Println("current node:", currentNode, "minutes", minutes)
+func reverse(nodes []Node) []Node {
+	for i, j := 0, len(nodes)-1; i < j; i, j = i+1, j-1 {
+		nodes[i], nodes[j] = nodes[j], nodes[i]
+	}
+	return nodes
 
-// 	if currentNode.row == goal.row && currentNode.col == goal.col {
-// 		fmt.Println("Arrived in ", minutes, "minutes")
-// 		//panic("interruption")
-// 		return minutes, true
-// 	}
-
-// 	// // Upper bound for minutes
-// 	// if minutes > 1000 {
-// 	// 	return 0, false
-// 	// }
-// 	if _, ok := visited[minutes]; !ok {
-// 		visited[minutes] = map[Cell]bool{}
-// 	}
-
-// 	visited[minutes][currentNode] = true
-
-// 	neighbours := findNeighbours(currentNode, board)
-// 	newBoard := updateBoard(board, minutes)
-
-// 	// A blizzard reached the expedition
-// 	if newBoard[currentNode.row][currentNode.col] != 0 {
-// 		fmt.Println("newBoard[currentNode.row][currentNode.col]", newBoard[currentNode.row][currentNode.col])
-// 		fmt.Println(newBoard)
-// 		printBoard(newBoard, currentNode)
-
-// 		return 0, false
-// 	}
-// 	minutes++
-
-// 	for len(neighbours) == 0 {
-// 		neighbours = findNeighbours(currentNode, newBoard)
-// 		newBoard = updateBoard(newBoard, minutes)
-// 		minutes++
-// 	}
-
-// 	fmt.Println("Found neighbours")
-// 	printBoard(newBoard, currentNode)
-// 	fmt.Println("currentNode:", currentNode)
-// 	fmt.Println("Neighbours:", neighbours)
-
-// 	fmt.Println("Board value:", newBoard[neighbours[0].row][neighbours[0].col])
-// 	fmt.Println()
-
-// 	// If one of the neighbours is the Goal we do not need to visit the rest
-
-// 	for _, neighbour := range neighbours {
-// 		if neighbour.row == goal.row && neighbour.col == goal.col {
-// 			return minutes + 1, true
-// 		}
-// 	}
-// 	minMinutes := math.MaxInt
-// 	atLeastOneVisited := false
-
-// 	for _, neighbour := range neighbours {
-// 		if !visited[minMinutes][neighbour] {
-// 			takenMinutes, ok := findShortestPath(neighbour, goal, newBoard, minutes, visited)
-
-// 			if ok {
-// 				atLeastOneVisited = true
-
-// 				if takenMinutes < minMinutes {
-// 					minMinutes = takenMinutes
-// 				}
-// 			}
-// 		}
-
-// 	}
-// 	return minMinutes, atLeastOneVisited
-// }
+}
 
 func main() {
-	execType := "test"
+	execType := "input"
 	board := array.Map(input.GetLines(2022, 24, execType+".txt"), getRow)
 
 	fmt.Println(board)
@@ -411,22 +367,27 @@ func main() {
 
 	fmt.Println("E", entrance, "S", exit)
 
-	// Visited means here, visit the same cell in the same minute. That will
-	// lead to the same result
-	//visited := map[int]map[Cell]bool{}
-
-	// TODO - Not sure if this should be minute 1
 	boardCache[0] = board
 
-	//minutes, found := findShortestPath(entrance, exit, board, 0, visited)
-	minutes, found := Astar(entrance, exit, board, 0)
+	node, minutes, found := Astar(entrance, exit, board, 0)
 
 	fmt.Println(minutes, found)
 
-	// for i := 0; i < len(boardCache); i++ {
-	// 	fmt.Println("Minute ", i)
-	// 	printBoard(boardCache[i], Cell{row: 0, col: 1})
-	// 	fmt.Println()
-	// }
+	nodes := []Node{}
+
+	for node.parent != nil {
+		nodes = append(nodes, node)
+		node = *node.parent
+
+		if node.parent == nil {
+			nodes = append(nodes, node)
+		}
+	}
+
+	for _, node := range reverse(nodes) {
+		fmt.Println("Minute", node.minute)
+		printBoard(getBoardAsOf(node.minute), node.node)
+		fmt.Println()
+	}
 
 }
