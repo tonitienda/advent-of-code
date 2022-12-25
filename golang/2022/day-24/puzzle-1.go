@@ -4,7 +4,6 @@ import (
 	"advent/utils/array"
 	"advent/utils/input"
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -195,9 +194,6 @@ func updateBoard(board [][]int, minutes int) [][]int {
 		}
 	}
 
-	//fmt.Println(newBoard)
-	//fmt.Println("---")
-
 	return newBoard
 }
 
@@ -228,166 +224,47 @@ func printBoard(board [][]int, currentNode Cell) {
 	}
 }
 
-func isSameCell(n1, n2 Cell) bool {
-	return n1.row == n2.row && n1.col == n2.col
-}
+func bfsPoi(start, goal Cell, cycle int) int {
+	pendingNodes := []Cell{start}
+	nextPendingNodes := map[Cell]bool{}
 
-func square(n int) int {
-	return n * n
-}
+	minute := 0
 
-func calculateDistance(node1, node2 Cell) float64 {
-	distance := math.Sqrt(float64(square(node2.row-node1.row) + square(node2.col-node1.col)))
+	for {
+		minute++
+		for _, node := range pendingNodes {
+			neighbours := findNeighboursAsOf(node, minute, cycle)
 
-	return distance
-}
+			for _, n := range neighbours {
+				// We look for the cel that is over the goal
+				// since the goal is in the margins and we will never
+				// get it as a neighbour. And because we can only reach
+				// the goal by going down from the cel on top
+				if n.row == goal.row-1 && n.col == goal.col {
+					// We would reach the goal in the next movement
+					return minute + 1
+				}
 
-func findIndex(list []Node, node Node) int {
-	for idx, n := range list {
-		if isSameCell(n.cell, node.cell) && n.cell.minute == node.cell.minute {
-			return idx
-		}
-	}
-
-	return -1
-}
-
-func bruteForce(start, goal Cell, cycle, minutes int, visited map[Cell]bool, path []Cell) (int, bool, []Cell) {
-	currentCell := start
-
-	// We can only get to the goal going down from the previous row
-	// So if we reach {row-1, col} means that the next step is the goal
-	if currentCell.row == goal.row-1 && currentCell.col == goal.col {
-		return minutes + 1, true, append(path, goal)
-	}
-
-	neighbours := findNeighboursAsOf(currentCell, minutes, cycle)
-
-	minMinutes := math.MaxInt
-	found := false
-	bestPath := []Cell{}
-
-	for _, neighbour := range neighbours {
-
-		// Check visited
-		modCell := Cell{row: neighbour.row, col: neighbour.col, minute: neighbour.minute % cycle}
-
-		if visited[modCell] {
-			continue
+				nextPendingNodes[n] = true
+			}
 		}
 
-		visited[modCell] = true
-		minutes2, ok, path2 := bruteForce(neighbour, goal, cycle, minutes+1, visited, append(path, neighbour))
-		visited[modCell] = false
+		pendingNodes = []Cell{}
 
-		if ok && minutes2 < minMinutes {
-			found = true
-			minMinutes = minutes2
-			bestPath = path2
+		for node, _ := range nextPendingNodes {
+			pendingNodes = append(pendingNodes, node)
 		}
+
+		nextPendingNodes = map[Cell]bool{}
+		//fmt.Printf("%d minutes, next pending nodes: %d\n", minute, len(pendingNodes))
 	}
-
-	return minMinutes, found, bestPath
-
-}
-
-// func Astar(start Cell, goal Cell, board [][]int, minutes int) (Node, int, bool) {
-// 	// List of nodes pending to be analyzed
-
-// 	openList := []Node{{
-// 		cell: start,
-// 		g:    0,
-// 		h:    0,
-// 		f:    0,
-// 	}}
-
-// 	// List of nodes already visited
-// 	// Should not be visited again
-// 	closedList := []Node{}
-
-// 	for len(openList) > 0 {
-// 		// Pop node with lowest f (cost)
-// 		currentNode := openList[0]
-// 		openList = openList[1:]
-// 		//minutes = currentNode.minute
-
-// 		fmt.Println("minutes", minutes, "currentNode", currentNode, "openlist", len(openList), "closedList", len(closedList))
-
-// 		neighbours := findNeighboursAsOf(currentNode.cell, minutes)
-
-// 		successors := array.Map(neighbours, func(n Cell) Node {
-// 			return Node{node: n, parent: &currentNode}
-// 		})
-
-// 		// fmt.Println("s", neighbours)
-// 		// Compute successors
-// 		for _, successor := range successors {
-
-// 			// We found the goal
-// 			if isSameCell(successor.node, goal) {
-// 				return successor, minutes, true
-// 			}
-
-// 			// Compute G: distance to origin
-// 			// if isSameCell(successor.node, currentNode.node) {
-// 			// 	successor.g = currentNode.g
-// 			// } else {
-// 			successor.g = currentNode.g + 1
-// 			// }
-
-// 			// Compute H: distance to goal
-// 			// Using simple diagonal distance
-// 			successor.h = calculateDistance(successor.node, goal)
-// 			// if math.IsNaN(successor.h) {
-// 			// 	fmt.Println("NaN:", successor.node, goal)
-// 			// }
-// 			// Smaller is best.
-// 			// It means we are closer to the goal and closer to the origin
-// 			successor.f = successor.h + successor.g
-// 			//fmt.Println(successor)
-
-// 			// If the open list already has this node but with less f
-// 			// (we reached it in a shorter path) we do not add this
-// 			// If we find it with higher f, we replace it.
-// 			// if it is not found, we can add it
-// 			indexOfSuccessor := findIndex(openList, successor)
-// 			indexOfClosedSuccessor := findIndex(closedList, successor)
-
-// 			if indexOfClosedSuccessor == -1 {
-// 				if indexOfSuccessor == -1 {
-// 					openList = append(openList, successor)
-// 				} else if openList[indexOfSuccessor].f < successor.f {
-// 					openList[indexOfSuccessor] = successor
-// 				}
-// 			}
-// 		}
-
-// 		// Sort open list so the min f is at the beginning of the list
-// 		sort.SliceStable(openList, func(i, j int) bool {
-// 			return openList[i].f < openList[j].f
-// 		})
-
-// 		closedList = append(closedList, currentNode)
-
-// 	}
-
-// 	return Node{}, 0, false
-
-// }
-
-func reverse(nodes []Node) []Node {
-	for i, j := 0, len(nodes)-1; i < j; i, j = i+1, j-1 {
-		nodes[i], nodes[j] = nodes[j], nodes[i]
-	}
-	return nodes
-
 }
 
 func main() {
 	execType := "input"
 	board := array.Map(input.GetLines(2022, 24, execType+".txt"), getRow)
 
-	fmt.Println(board)
+	//fmt.Println(board)
 	entrance := Cell{row: 0, col: 1}
 	exit := Cell{row: len(board) - 1, col: len(board[0]) - 2}
 
@@ -395,47 +272,14 @@ func main() {
 
 	boardCache[0] = board
 
-	// board1 := getBoardAsOf(0)
-
-	// board2 := getBoardAsOf()
-
-	// printBoard(board1, entrance)
-	// printBoard(board2, entrance)
-	// TODO - Optimize if we can factor the num of rows and columns
-	fmt.Println(len(board)-2, len(board[0])-2)
+	//fmt.Println(len(board)-2, len(board[0])-2)
 	cycle := (len(board) - 2) * (len(board[0]) - 2)
+
+	// TODO - calculate lcm of width and height of the board
 	cycle = 600
-	visitedNodes := map[Cell]bool{}
-	//_, minutes, found := Astar(entrance, exit, board, 0)
-	_, found, path := bruteForce(entrance, exit, cycle, 1, visitedNodes, []Cell{entrance})
 
-	// for idx, cell := range path {
-	// 	fmt.Println("Minute", idx)
-	// 	printBoard(getBoardAsOf(idx), cell)
-	// 	fmt.Println()
-	// }
+	minutes := bfsPoi(entrance, exit, cycle)
 
-	// Path contains the initial state, but we only want the steps
-	// so we need to ignore the "initial state"
-	fmt.Println(len(path)-1, found)
-
-	// nodes := []Node{}
-
-	// for node.parent != nil {
-	// 	nodes = append(nodes, node)
-	// 	node = *node.parent
-
-	// 	if node.parent == nil {
-	// 		nodes = append(nodes, node)
-	// 	}
-	// }
-
-	// for _, node := range reverse(nodes) {
-	// 	fmt.Println("Minute", node.minute)
-	// 	printBoard(getBoardAsOf(node.minute), node.node)
-	// 	fmt.Println()
-	// }
-
-	// fmt.Println(minutes, found)
+	fmt.Println(minutes)
 
 }
