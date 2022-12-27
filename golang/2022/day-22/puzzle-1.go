@@ -44,40 +44,52 @@ func getValue(str string) int {
 	}
 }
 
-func findLastCellByRow(row int, board [][]int) Point {
+func findLastCellByRow(row int, board [][]int) (Point, bool) {
 	for col := len(board[row]) - 1; col <= 0; col-- {
+		if board[row][col] == Wall {
+			return Point{row: row, col: col}, false
+		}
 		if board[row][col] == Path {
-			return Point{row: row, col: col}
+			return Point{row: row, col: col}, true
 		}
 	}
 
 	panic("")
 }
 
-func findLastCellByCol(col int, board [][]int) Point {
+func findLastCellByCol(col int, board [][]int) (Point, bool) {
 	for row := len(board) - 1; row <= 0; row-- {
+		if board[row][col] == Wall {
+			return Point{row: row, col: col}, false
+		}
 		if board[row][col] == Path {
-			return Point{row: row, col: col}
+			return Point{row: row, col: col}, true
 		}
 	}
 
 	panic("")
 }
 
-func findFirstCellByRow(row int, board [][]int) Point {
+func findFirstCellByRow(row int, board [][]int) (Point, bool) {
 	for col, val := range board[row] {
+		if val == Wall {
+			return Point{row: row, col: col}, false
+		}
 		if val == Path {
-			return Point{row: row, col: col}
+			return Point{row: row, col: col}, true
 		}
 	}
 
 	panic("First path could not be found in row " + strconv.Itoa(row))
 }
 
-func findFirstCellByCol(col int, board [][]int) Point {
+func findFirstCellByCol(col int, board [][]int) (Point, bool) {
 	for row, _ := range board {
+		if board[row][col] == Wall {
+			return Point{row: row, col: col}, false
+		}
 		if board[row][col] == Path {
-			return Point{row: row, col: col}
+			return Point{row: row, col: col}, true
 		}
 	}
 
@@ -89,6 +101,13 @@ var Movements = map[string]Movement{
 	"left":  {row: 0, col: -1},
 	"up":    {row: -1, col: 0},
 	"down":  {row: 1, col: 0},
+}
+
+var FinalValues = map[string]int{
+	"right": 0,
+	"left":  2,
+	"up":    3,
+	"down":  1,
 }
 
 func changeMovement(current string, turn int) string {
@@ -155,54 +174,92 @@ func move(p Point, direction string, board [][]int) Point {
 	}
 
 	if next.row < 0 {
-		next = findLastCellByCol(next.col, board)
+		next, _ = findLastCellByCol(next.col, board)
 	} else if next.col < 0 {
-		next = findLastCellByRow(next.row, board)
+		next, _ = findLastCellByRow(next.row, board)
+
 	} else if next.row >= len(board) {
-		next = findFirstCellByCol(next.row, board)
+		next, _ = findFirstCellByCol(next.col, board)
+
 	} else if next.col >= len(board[next.row]) {
-		next = findFirstCellByRow(next.row, board)
+		next, _ = findFirstCellByRow(next.row, board)
+
 	}
 
+	fmt.Println("current", p, "next", next)
 	if board[next.row][next.col] == Nothing {
 		switch direction {
 		case "right":
-			next = findFirstCellByRow(next.row, board)
+			next2, ok := findFirstCellByRow(next.row, board)
+			if ok {
+				next = next2
+			} else {
+				return p
+			}
+
 		case "down":
-			next = findFirstCellByCol(next.col, board)
+			next2, ok := findFirstCellByCol(next.col, board)
+			if ok {
+				next = next2
+			} else {
+				return p
+			}
 		case "left":
-			next = findLastCellByRow(next.row, board)
+			next2, ok := findLastCellByRow(next.row, board)
+			if ok {
+				next = next2
+			} else {
+				return p
+			}
+
 		case "up":
-			next = findLastCellByCol(next.col, board)
+			next2, ok := findLastCellByCol(next.col, board)
+			if ok {
+				next = next2
+			} else {
+				return p
+			}
+
 		}
 	}
 
 	if board[next.row][next.col] == Wall {
+		fmt.Println("Next cell is a wall. Returning", p)
 		return p
 	}
-
+	fmt.Println("\tReturning", next)
 	return next
 
 }
 
-func wrapMovement(point Point, direction string, board [][]int) Point {
-	if direction == "right" {
-		return findFirstCellByRow(point.row, board)
-	}
+var directionSymbol = map[string]string{
+	"right": ">",
+	"left":  "<",
+	"up":    "^",
+	"down":  "v",
+}
 
-	if direction == "down" {
-		return findFirstCellByCol(point.col, board)
-	}
+func printBoard(board [][]int, directions map[Point]string) {
+	for row, _ := range board {
+		for col, _ := range board[row] {
+			direction, ok := directions[Point{row: row, col: col}]
 
-	if direction == "left" {
-		return findLastCellByRow(point.row, board)
-	}
+			if ok {
+				fmt.Print(directionSymbol[direction])
+			} else {
 
-	if direction == "up" {
-		return findLastCellByCol(point.col, board)
+				switch board[row][col] {
+				case Wall:
+					fmt.Print("#")
+				case Path:
+					fmt.Print(".")
+				default:
+					fmt.Print(" ")
+				}
+			}
+		}
+		fmt.Println()
 	}
-
-	panic("")
 }
 
 func main() {
@@ -219,21 +276,37 @@ func main() {
 	fmt.Println(board)
 	fmt.Println(commands)
 
-	current := findFirstCellByRow(0, board)
+	current, _ := findFirstCellByRow(0, board)
 	direction := "right"
 
+	trail := map[Point]string{}
+	printBoard(board, trail)
 	for _, command := range commands {
 
+		trail[current] = direction
+
+		fmt.Println(current)
+		fmt.Println("command", command)
 		if command == TurnLeft || command == TurnRight {
 			direction = changeMovement(direction, command)
+			fmt.Println("direction", direction)
+
 		} else {
+			fmt.Println("moving", command, "units")
+
 			for i := 0; i < command; i++ {
 				// We can optimize this. If there is a wall we can skip some iterations
 				current = move(current, direction, board)
+				trail[current] = direction
 			}
 		}
+		fmt.Println()
 	}
 
+	printBoard(board, trail)
+
+	// Expected (rows index 1) row 6, col 8, direction 0 (right) 1000 * 6 + 4 * 8 + 0: 6032
 	fmt.Println(current, direction)
+	fmt.Println((current.row+1)*1000 + (current.col+1)*4 + FinalValues[direction])
 
 }
