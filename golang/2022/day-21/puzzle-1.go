@@ -71,7 +71,7 @@ func makeMonkeyMap(monkeys []Monkey) map[string]Monkey {
 
 func main() {
 
-	execType := "input"
+	execType := "test"
 	data := input.GetLines(2022, 21, execType+".txt")
 
 	monkeys := array.Map(data, getMonkey)

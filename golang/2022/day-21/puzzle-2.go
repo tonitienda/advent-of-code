@@ -95,13 +95,13 @@ func makeMonkeyMap(monkeys []Monkey) map[string]Monkey {
 func getInverseOperation(monkey Monkey) func(n1, n2 int) int {
 	switch monkey.operation {
 	case "+":
-		return func(n1, n2 int) int { return n1 - n2 }
+		return func(n1, n2 int) int { fmt.Printf("%d - %d\n", n2, n1); return n2 - n1 }
 	case "-":
-		return func(n1, n2 int) int { return n1 + n2 }
+		return func(n1, n2 int) int { fmt.Printf("%d + %d\n", n1, n2); return n1 + n2 }
 	case "*":
-		return func(n1, n2 int) int { return n1 / n2 }
+		return func(n1, n2 int) int { fmt.Printf("%d / %d\n", n1, n2); return n1 / n2 }
 	case "/":
-		return func(n1, n2 int) int { return n1 * n2 }
+		return func(n1, n2 int) int { fmt.Printf("%d * %d\n", n1, n2); return n1 * n2 }
 
 	default:
 		panic("Operation " + monkey.operation + " not supported.")
@@ -109,62 +109,46 @@ func getInverseOperation(monkey Monkey) func(n1, n2 int) int {
 	}
 }
 
-func solveEquation(value int, monkey Monkey, index map[string]Monkey) int {
-	fmt.Println("Trying to solve ", monkey.id)
+func getOperation(monkey Monkey) func(n1, n2 int) int {
+	switch monkey.operation {
+	case "+":
+		return func(n1, n2 int) int { fmt.Printf("%d + %d\n", n1, n2); return n1 + n2 }
+	case "-":
+		return func(n1, n2 int) int { fmt.Printf("%d - %d\n", n1, n2); return n1 - n2 }
+	case "*":
+		return func(n1, n2 int) int { fmt.Printf("%d * %d\n", n1, n2); return n1 * n2 }
+	case "/":
+		return func(n1, n2 int) int { fmt.Printf("%d / %d\n", n1, n2); return n1 / n2 }
 
-	if monkey.id == "humn" {
-		fmt.Println(value)
-		return value
-	}
+	default:
+		panic("Operation " + monkey.operation + " not supported.")
 
-	if monkey.isSolved {
-		return monkey.value
-	}
-
-	node1 := index[monkey.m1]
-	node2 := index[monkey.m2]
-
-	operation := getInverseOperation(monkey)
-
-	if node1.isSolved {
-		return solveEquation(operation(value, node1.value), node2, index)
-	} else {
-		return solveEquation(operation(value, node2.value), node1, index)
 	}
 }
 
 func main() {
 
-	execType := "test"
+	execType := "input"
 	data := input.GetLines(2022, 21, execType+".txt")
 
 	monkeys := array.Map(data, getMonkey)
 
 	index := makeMonkeyMap(monkeys)
 
-	index = makeMonkeyMap(monkeys)
-	rootMonkey := index["root"]
-	rootMonkey.operation = "="
-	index["root"] = rootMonkey
+	index2 := map[string]func() int{}
+	index3 := map[string]bool{}
 
-	humnMonkey := index["humn"]
-	humnMonkey.isSolved = false
-	index["humn"] = humnMonkey
+	descriptions := map[string]string{}
 
-	// index2 := map[string]func() int{}
-	// index3 := map[string]bool{}
+	currentHumnValue := 0
 
-	// descriptions := map[string]string{}
-
-	// currentHumnValue := 0
 	somethingSolved := true
-
 	// Solve everything solvable
 	for somethingSolved {
 		somethingSolved = false
 
 		for key, monkey := range index {
-			if key != "humn" && key != "root" && !monkey.isSolved {
+			if monkey.m1 != "humn" && key != "root" && !monkey.isSolved {
 				m1 := index[monkey.m1]
 				m2 := index[monkey.m2]
 
@@ -192,15 +176,180 @@ func main() {
 		}
 	}
 
-	root := index["root"]
+	for !index3["root"] {
+		for key, monkey := range index {
+			if !index3[key] {
+				if key == "humn" {
+					index2[key] = func(key string) func() int {
+						return func() int { return currentHumnValue }
+					}(key)
+					index3[key] = true
+					descriptions["humn"] = "humn"
+				} else if monkey.isSolved {
+					index2[key] = func(monkey Monkey) func() int { return func() int { return monkey.value } }(monkey)
+					index3[key] = true
 
-	node1 := index[root.m1]
-	node2 := index[root.m2]
+					descriptions[key] = strconv.Itoa(monkey.value)
+				} else {
+					// The monkey needs other monkeys data
 
-	if node1.isSolved {
-		fmt.Println(solveEquation(node1.value, node2, index))
-	} else {
-		fmt.Println(solveEquation(node2.value, node1, index))
+					f1, ok1 := index2[monkey.m1]
+					f2, ok2 := index2[monkey.m2]
+
+					if ok1 && ok2 {
+
+						switch monkey.operation {
+						case "+":
+							index2[key] = func(f1, f2 func() int, key string) func() int {
+								return func() int { return f1() + f2() }
+							}(f1, f2, key)
+							descriptions[key] = "(" + descriptions[monkey.m1] + "+" + descriptions[monkey.m2] + ")"
+
+						case "-":
+							index2[key] = func(f1, f2 func() int, key string) func() int {
+								return func() int { return f1() - f2() }
+							}(f1, f2, key)
+							descriptions[key] = "(" + descriptions[monkey.m1] + "-" + descriptions[monkey.m2] + ")"
+
+						case "*":
+							index2[key] = func(f1, f2 func() int, key string) func() int {
+								return func() int { return f1() * f2() }
+							}(f1, f2, key)
+							descriptions[key] = descriptions[monkey.m1] + "*" + descriptions[monkey.m2]
+
+						case "/":
+							index2[key] = func(f1, f2 func() int, key string) func() int {
+								return func() int { return f1() / f2() }
+							}(f1, f2, key)
+							descriptions[key] = descriptions[monkey.m1] + "/" + descriptions[monkey.m2]
+
+						case "=":
+							index2[key] = func(f1, f2 func() int) func() int {
+								return func() int { return f1() - f2() }
+							}(f1, f2)
+							descriptions[key] = "(" + descriptions[monkey.m1] + "==" + descriptions[monkey.m2] + ")"
+
+						}
+
+						index3[key] = true
+					}
+
+				}
+			}
+		}
 	}
+
+	//root := index["root"]
+
+	// node1 := index[root.m1]
+	// node2 := index[root.m2]
+
+	//result := solveEquation(0, root, index)
+	// if node1.isSolved {
+	// 	result = solveEquation(node1.value, node2, index)
+	// } else {
+	// 	result = solveEquation(node2.value, node1, index)
+	// }
+
+	// fmt.Println(result)
+	// fmt.Println("\n\n\n\n\n")
+	// f := index2["root"]
+
+	// currentHumnValue = result
+	// fmt.Println(f())
+
+	// root := Monkey{id: "root", m1: "a", m2: "b", operation: "+"}
+	// a := Monkey{id: "a", value: 24, isSolved: true}
+	// b := Monkey{id: "b", m1: "c", m2: "d", operation: "+"}
+	// c := Monkey{id: "c", value: 8, isSolved: true}
+	// d := Monkey{id: "d", m1: "e", m2: "f", operation: "-"}
+	// e := Monkey{id: "e", value: 20, isSolved: true}
+	// f := Monkey{id: "f", m1: "humn", m2: "g", operation: "*"}
+	// humn := Monkey{id: "humn", value: 0, isSolved: false}
+	// g := Monkey{id: "g", value: 2, isSolved: true}
+
+	// indextest := map[string]Monkey{
+	// 	"root": root,
+	// 	"a":    a,
+	// 	"b":    b,
+	// 	"c":    c,
+	// 	"d":    d,
+	// 	"e":    e,
+	// 	"f":    f,
+	// 	"g":    g,
+	// 	"humn": humn,
+	// }
+	fmt.Println(descriptions["root"])
+	humn := index["humn"]
+	humn.isSolved = false
+	index["humn"] = humn
+	root := index["root"]
+	m1 := index[root.m1]
+	m2 := index[root.m2]
+	fmt.Println(descriptions[root.m1])
+	fmt.Println(descriptions[root.m2])
+
+	if m1.isSolved {
+		solve(m1.value, m2, index)
+	} else if m2.isSolved {
+		solve(m2.value, m1, index)
+	}
+
+}
+
+func getNextLevelSolvedMonkey(m Monkey, index map[string]Monkey) Monkey {
+	m1 := index[m.m1]
+	m2 := index[m.m2]
+
+	if m1.isSolved {
+		return m1
+	}
+
+	if m2.isSolved {
+		return m2
+	}
+
+	panic("None of the children of " + m.id + " are solved.")
+}
+
+func solve(value int, m Monkey, index map[string]Monkey) int {
+	if m.id == "humn" {
+		fmt.Println("HUMN: Value", value)
+		return value
+	}
+
+	// m = 24 + x
+	m1 := index[m.m1] // 24
+	m2 := index[m.m2] // 8 + y
+	//m21 := 8
+	// m22 := y
+
+	fmt.Println("value", value, "id", m.id, "[", m.m1, ",", m.m2, "]")
+	if m1.isSolved {
+		fmt.Println(m1.id, "is solved. v:", m1.value, "m op:", m.operation)
+		operation := getInverseOperation(m)
+		if m.operation == "-" || m.operation == "/" {
+			operation = getOperation(m)
+		}
+
+		if m.operation == "*" {
+			value = operation(value, m1.value)
+		} else {
+			value = operation(m1.value, value)
+		}
+		fmt.Println("New Value", value)
+		return solve(value, m2, index)
+	}
+
+	if m2.isSolved {
+		fmt.Println(m2.id, "is solved. v:", m2.value)
+		operation := getInverseOperation(m)
+		value = operation(value, m2.value)
+
+		fmt.Println("New Value", value)
+		return solve(value, m1, index)
+	}
+
+	return 0
 
 }
