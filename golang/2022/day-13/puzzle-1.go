@@ -69,6 +69,7 @@ func areCorrectOrder(str1, str2 string) bool {
 	if len(contents1) > len(contents2) {
 		return false
 	}
+
 	for idx, list := range contents1 {
 		if len(list) == 0 {
 			fmt.Println("Left side ran out of items, so inputs are in the right order")
@@ -106,20 +107,74 @@ func main() {
 
 	list := input.Get2DMatrix(input.GetContents(2022, 13, "test.txt"), "\n\n", "\n", func(str string) string { return str })
 
-	rightOrder := []int{}
+	totalInRightOrder := 0
 	for idx, pair := range list {
-		if areCorrectOrder(pair[0], pair[1]) {
-			rightOrder = append(rightOrder, idx+1)
+		left := pair[0]
+		right := pair[1]
+
+		fmt.Println(idx, "left:", left, "right:", right)
+
+		areCorrectOrder := true
+		for chidx, ch1 := range strings.Split(left, "") {
+			if chidx >= len(right) {
+				fmt.Println("Right out of items")
+				break
+			}
+
+			ch2 := strings.Split(right, "")[chidx]
+
+			if ch1 == "[" {
+				if ch2 != "[" {
+					areCorrectOrder = false
+					fmt.Printf("ch1: %s, ch2: %s. Are not correct\n\n", ch1, ch2)
+					break
+				}
+			}
+
+			if ch1 == "]" {
+				if ch2 != "]" {
+					areCorrectOrder = false
+					fmt.Printf("ch1: %s, ch2: %s. Are not correct\n\n", ch1, ch2)
+					break
+				}
+			}
+
+			if ch1 == "," {
+				if ch2 != "," {
+					areCorrectOrder = false
+					fmt.Printf("ch1: %s, ch2: %s. Are not correct\n\n", ch1, ch2)
+					break
+				}
+			}
+
+			if ch1 > ch2 {
+				areCorrectOrder = false
+				fmt.Printf("ch1: %s, ch2: %s. Are not correct\n\n", ch1, ch2)
+				break
+			}
 		}
-		fmt.Println()
+		if areCorrectOrder {
+			fmt.Println("Are correct")
+			totalInRightOrder += idx + 1
+		}
+
 	}
 
-	fmt.Println(rightOrder)
+	fmt.Println(totalInRightOrder)
+	// rightOrder := []int{}
+	// for idx, pair := range list {
+	// 	if areCorrectOrder(pair[0], pair[1]) {
+	// 		rightOrder = append(rightOrder, idx+1)
+	// 	}
+	// 	fmt.Println()
+	// }
 
-	sum := 0
-	for _, num := range rightOrder {
-		sum += num
-	}
+	// fmt.Println(rightOrder)
 
-	fmt.Println(sum)
+	// sum := 0
+	// for _, num := range rightOrder {
+	// 	sum += num
+	// }
+
+	// fmt.Println(sum)
 }
