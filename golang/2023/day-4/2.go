@@ -3,7 +3,6 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -53,10 +52,13 @@ func main() {
 	// Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11`
 
 	games := strings.Split(input, "\n")
+	scratchcardTotalCopies := make([]int, len(games))
 
-	totalPoints := 0
+	for i := 0; i < len(scratchcardTotalCopies); i++ {
+		scratchcardTotalCopies[i] = 1
+	}
 
-	for _, game := range games {
+	for idx, game := range games {
 		gameSplit := strings.Split(game, "|")
 
 		cardNumbers := toNumbers(strings.Split(gameSplit[0], ":")[1])
@@ -66,14 +68,28 @@ func main() {
 
 		count := countFindings(cardNumbers, winingNumbers)
 
-		fmt.Println("Found", count, "coincidences")
+		//fmt.Println("Found", count, "coincidences")
 
 		if count > 0 {
-			totalPoints += int(math.Pow(2, float64(count-1)))
+			//fmt.Println("scratchcardTotalCopies", scratchcardTotalCopies, "count", count)
+
+			//totalPoints += int(math.Pow(2, float64(count-1)))
+			for i := idx + 1; i < len(scratchcardTotalCopies) && i <= count+idx; i++ {
+				scratchcardTotalCopies[i] += scratchcardTotalCopies[idx]
+			}
+
+			//fmt.Println("scratchcardTotalCopies", scratchcardTotalCopies)
 		}
 
 	}
 
-	fmt.Println("Total points:", totalPoints)
+	//fmt.Println("scratchcardTotalCopies", scratchcardTotalCopies)
 
+	total := 0
+
+	for _, val := range scratchcardTotalCopies {
+		total += val
+	}
+
+	fmt.Println("Total:", total)
 }
