@@ -138,7 +138,7 @@ func Run2() {
 				if _, ok := originsToDestinations[origin][currentNode][routeIdx]; ok {
 					break
 				}
-				originsToDestinations[origin][currentNode][routeIdx] = steps
+				originsToDestinations[origin][currentNode][routeIdx] = steps + 1
 			}
 
 			steps++
@@ -149,25 +149,25 @@ func Run2() {
 
 	numbers := []int{}
 	total := 1
-	for o, om := range originsToDestinations {
-		for d, dm := range om {
-			indices := []string{}
+	for _, om := range originsToDestinations {
+		for _, dm := range om {
+			//indices := []string{}
 
-			for i, steps := range dm {
-				indices = append(indices, fmt.Sprintf("%d = %d", i, steps))
+			for _, steps := range dm {
+				//indices = append(indices, fmt.Sprintf("%d = %d", i, steps))
 				numbers = append(numbers, steps)
 				total *= steps
 			}
 
-			if len(indices) > 0 {
-				fmt.Println(o, "=>", d, "=", indices)
-			}
+			// if len(indices) > 0 {
+			// 	fmt.Println(o, "=>", d, "=", indices)
+			// }
 		}
 	}
 
-	fmt.Println("numbers", numbers)
-	fmt.Printf("numbers2:%d, %d, %v\n", numbers[0], numbers[1], numbers[2:])
-	fmt.Println("total", total)
+	//fmt.Println("numbers", numbers)
+	//fmt.Printf("numbers2:%d, %d, %v\n", numbers[0], numbers[1], numbers[2:])
+	//fmt.Println("total", total)
 	fmt.Println("LCM", LCM(numbers[0], numbers[1], numbers[2:]...))
 
 }
