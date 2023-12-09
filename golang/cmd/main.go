@@ -1,7 +1,10 @@
 package main
 
-import y2023d8 "advent/2023/day-8"
+import (
+	y2023d9 "advent/2023/day-9"
+)
 
 func main() {
-	y2023d8.Run2()
+
+	y2023d9.Run2()
 }
