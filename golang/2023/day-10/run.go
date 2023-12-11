@@ -135,6 +135,39 @@ func loop(starti, startj int, direction int, table [][]rune) (int, [][]int, bool
 	}
 }
 
+func getVertices(starti, startj int, direction int, table [][]rune) ([][2]int, bool) {
+
+	ci, cj := starti, startj
+
+	path := [][2]int{}
+
+	// Checking the files S node is a corner in both cases
+	// To make this generic we should make sure it does not behave
+	// as | or -
+	path = append(path, [2]int{starti, startj})
+
+	ok := false
+	for {
+		ci, cj, direction, ok = getNextCell(ci, cj, table, direction)
+
+		if !ok {
+			return path, false
+		}
+
+		if table[ci][cj] == StartPoint {
+			// We need the polygon to be closed, so we add the starting point again
+			path = append(path, [2]int{ci, cj})
+
+			return path, true
+		}
+
+		if table[ci][cj] != '.' && table[ci][cj] != '-' && table[ci][cj] != '|' {
+			path = append(path, [2]int{ci, cj})
+		}
+
+	}
+}
+
 func Run1() {
 
 	// Parse
@@ -188,5 +221,59 @@ func Run1() {
 	}
 
 	fmt.Println("max", maxDistance)
+
+}
+
+func calculateArea(path [][2]int) int {
+
+	area := 0
+
+	return area
+}
+
+func Run2() {
+	lines := strings.Split(test, "\n")
+	table := [][]rune{}
+
+	for _, line := range lines {
+		table = append(table, []rune(line))
+	}
+
+	// Find starting node
+	si, sj := getStartingNode(table)
+
+	fmt.Println("start:", si, sj)
+
+	pathUp, okUp := getVertices(si-1, sj, MovingUp, table)
+	//fmt.Println("UP", maxUp, okUp, distancesUp)
+	fmt.Println("UP", pathUp, okUp)
+
+	pathDown, okDown := getVertices(si+1, sj, MovingDown, table)
+	//fmt.Println("Down", maxDown, okDown, distancesDown)
+	fmt.Println("Down", pathDown, okDown)
+
+	pathRight, okRight := getVertices(si, sj+1, MovingRight, table)
+	//fmt.Println("Right", maxRight, okRight, distancesRight)
+	fmt.Println("Right", pathRight, okRight)
+
+	pathLeft, okLeft := getVertices(si, sj-1, MovingLeft, table)
+	fmt.Println("PathLeft", pathLeft, okLeft)
+
+	area := 0
+	if okUp {
+		area = calculateArea(pathUp)
+
+	} else if okDown {
+		area = calculateArea(pathDown)
+
+	} else if okLeft {
+		area = calculateArea(pathLeft)
+
+	} else if okRight {
+		area = calculateArea(pathRight)
+
+	}
+
+	fmt.Println("Area:", area)
 
 }
