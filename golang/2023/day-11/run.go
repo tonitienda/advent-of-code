@@ -50,7 +50,7 @@ func anyGalaxyInRow(galaxies [][2]int, row int) bool {
 	return false
 }
 
-func expandUniverse(galaxies [][2]int, maxHeight, maxWidth int) ([][2]int, int, int) {
+func expandUniverse(galaxies [][2]int, maxHeight, maxWidth int, units int) ([][2]int, int, int) {
 	// Expand rows
 	widthExpansion := map[int]int{}
 
@@ -58,7 +58,7 @@ func expandUniverse(galaxies [][2]int, maxHeight, maxWidth int) ([][2]int, int, 
 	for j := 0; j < maxWidth; j++ {
 		widthExpansion[j] = expanseW
 		if !anyGalaxyInColumn(galaxies, j) {
-			expanseW++
+			expanseW = expanseW + units - 1
 		}
 	}
 
@@ -68,7 +68,7 @@ func expandUniverse(galaxies [][2]int, maxHeight, maxWidth int) ([][2]int, int, 
 	for i := 0; i < maxHeight; i++ {
 		heightExpansion[i] = expanseH
 		if !anyGalaxyInRow(galaxies, i) {
-			expanseH++
+			expanseH = expanseH + units - 1
 		}
 	}
 
@@ -84,9 +84,9 @@ func expandUniverse(galaxies [][2]int, maxHeight, maxWidth int) ([][2]int, int, 
 	return expandedGalaxies, maxHeight + heightExpansion[maxHeight-1], maxWidth + widthExpansion[maxWidth-1]
 }
 
-func calculateSquareDistance(g1, g2 [2]int) int {
+func calculateSquareDistance(g1, g2 [2]int) int64 {
 
-	return int(math.Max(float64(g1[0]), float64(g2[0])) - math.Min(float64(g1[0]), float64(g2[0])) +
+	return int64(math.Max(float64(g1[0]), float64(g2[0])) - math.Min(float64(g1[0]), float64(g2[0])) +
 		math.Max(float64(g1[1]), float64(g2[1])) - math.Min(float64(g1[1]), float64(g2[1])))
 }
 
@@ -96,13 +96,45 @@ func Run1() {
 
 	galaxies, maxHeight, maxWidth := findGalaxies(input)
 
-	expandedGalaxies, expandedHeight, expandedWidth := expandUniverse(galaxies, maxHeight, maxWidth)
+	expandedGalaxies, expandedHeight, expandedWidth := expandUniverse(galaxies, maxHeight, maxWidth, 1)
 
 	fmt.Println(galaxies, maxHeight, maxWidth)
 
 	fmt.Println(expandedGalaxies, expandedHeight, expandedWidth)
 
-	totalDistance := 0
+	totalDistance := int64(0)
+
+	totalGalaxies := len(expandedGalaxies)
+
+	fmt.Println("totalGalaxies", totalGalaxies)
+	for idx1, g1 := range expandedGalaxies {
+		for idx2, g2 := range expandedGalaxies {
+			if idx1 != idx2 {
+				distance := calculateSquareDistance(g1, g2)
+
+				fmt.Printf("Distance %d - %d = %d\n", idx1+1, idx2+1, distance)
+
+				totalDistance += distance
+			}
+
+		}
+	}
+
+	fmt.Println("Total distance", totalDistance/2)
+
+}
+
+func Run2() {
+
+	galaxies, maxHeight, maxWidth := findGalaxies(input)
+
+	expandedGalaxies, expandedHeight, expandedWidth := expandUniverse(galaxies, maxHeight, maxWidth, 1000000)
+
+	fmt.Println(galaxies, maxHeight, maxWidth)
+
+	fmt.Println(expandedGalaxies, expandedHeight, expandedWidth)
+
+	totalDistance := int64(0)
 
 	totalGalaxies := len(expandedGalaxies)
 
