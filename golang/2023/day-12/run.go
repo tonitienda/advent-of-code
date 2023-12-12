@@ -31,8 +31,6 @@ func accordingToSpecs(springs []rune, specs []int) bool {
 		groups = append(groups, currentGroupItems)
 	}
 
-	//fmt.Println(groups)
-
 	if len(groups) != len(specs) {
 		return false
 	}
@@ -52,12 +50,26 @@ func accordingToSpecs2(springs []rune, specs []int) bool {
 	itemsInCurrentGroup := 0
 	currentGroupIdx := 0
 	expectedNoGroups := len(specs)
+	totalChars := len(springs)
 
-	for _, r := range springs {
+	for idx, r := range springs {
 		//	fmt.Println("Evaluating ", idx, ":", string(r))
 		if r == '?' {
+			// TODO - Here we are returning true very naively.
+			// We should veryfiy that the position is still valid.
+			// For example, for each "group" in specs, we need at least 2 character
+			// numCharsRequired = len(specs)*2 -1
+			// Maybe we have reached a ?, the the remaining chars (including ?)
+			// is not enough to form the required groups.
+
 			//fmt.Println("\t? => true")
-			return true
+			remainingChars := totalChars - idx
+			remainingGroups := expectedNoGroups - currentGroupIdx
+
+			// TODO - check if this formula is correct
+			// TODO - We are still permissive here not following the *
+			// but we can cut out some possibilities
+			return remainingChars >= remainingGroups
 		}
 
 		if r == '#' {
@@ -152,6 +164,7 @@ func getArrangements(springs []rune, specs []int, unknownIndices []int) int {
 
 func getArrangements2(springs []rune, specs []int, unknownIndices []int) int {
 	if !accordingToSpecs2(springs, specs) {
+		//fmt.Println("\t", string(springs), false)
 		return 0
 	}
 
@@ -167,11 +180,11 @@ func getArrangements2(springs []rune, specs []int, unknownIndices []int) int {
 	idx := unknownIndices[0]
 	springs[idx] = '.'
 	n1 := getArrangements2(springs, specs, unknownIndices[1:])
-	// fmt.Println("n1", string(springs), ":", specs, "=>", n1)
+	//fmt.Println("n1", string(springs), ":", specs, "=>", n1)
 
 	springs[idx] = '#'
 	n2 := getArrangements2(springs, specs, unknownIndices[1:])
-	// fmt.Println("n2", string(springs), ":", specs, "=>", n2)
+	//fmt.Println("n2", string(springs), ":", specs, "=>", n2)
 
 	springs[idx] = '?'
 
@@ -184,6 +197,20 @@ func getArrangements2(springs []rune, specs []int, unknownIndices []int) int {
 }
 
 func getArrangementsByRow(row string) int {
+	springs, specs := getSpringsAndSpecs(row)
+
+	unknownIndices := []int{}
+
+	for idx, r := range springs {
+		if r == '?' {
+			unknownIndices = append(unknownIndices, idx)
+		}
+	}
+
+	return getArrangements2(springs, specs, unknownIndices)
+}
+
+func getSpringsAndSpecs(row string) ([]rune, []int) {
 	data := strings.Split(row, " ")
 
 	springs := []rune(data[0])
@@ -199,15 +226,42 @@ func getArrangementsByRow(row string) int {
 		specs = append(specs, v)
 	}
 
+	return springs, specs
+
+}
+
+func getArrangementsByLongRow(row string) int {
+	springs, specs := getSpringsAndSpecs(row)
+
+	longSprings := []rune{}
+	longSprings = append(longSprings, springs...)
+	longSprings = append(longSprings, '?')
+	longSprings = append(longSprings, springs...)
+	longSprings = append(longSprings, '?')
+	longSprings = append(longSprings, springs...)
+	longSprings = append(longSprings, '?')
+	longSprings = append(longSprings, springs...)
+	longSprings = append(longSprings, '?')
+	longSprings = append(longSprings, springs...)
+
+	longSpecs := []int{}
+	longSpecs = append(longSpecs, specs...)
+	longSpecs = append(longSpecs, specs...)
+	longSpecs = append(longSpecs, specs...)
+	longSpecs = append(longSpecs, specs...)
+	longSpecs = append(longSpecs, specs...)
+
 	unknownIndices := []int{}
 
-	for idx, r := range springs {
+	for idx, r := range longSprings {
 		if r == '?' {
 			unknownIndices = append(unknownIndices, idx)
 		}
 	}
 
-	return getArrangements2(springs, specs, unknownIndices)
+	//fmt.Println("\t", string(longSprings), longSpecs)
+
+	return getArrangements2(longSprings, longSpecs, unknownIndices)
 }
 
 func Run1() {
@@ -219,6 +273,22 @@ func Run1() {
 	for _, row := range rows {
 		arrangements := getArrangementsByRow(row)
 		//fmt.Println(row, "=>", arrangements)
+		totalArrangements += arrangements
+	}
+
+	fmt.Println("Total arrangements:", totalArrangements)
+}
+
+func Run2() {
+	//fmt.Println(test)
+
+	rows := strings.Split(input, "\n")
+
+	totalArrangements := 0
+	for idx, row := range rows {
+		fmt.Println("Evaluating", idx+1, "/", len(rows))
+		arrangements := getArrangementsByLongRow(row)
+		fmt.Println("\t=>", arrangements)
 		totalArrangements += arrangements
 	}
 
