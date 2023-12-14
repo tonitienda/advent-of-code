@@ -135,36 +135,37 @@ func loop(starti, startj int, direction int, table [][]rune) (int, [][]int, bool
 	}
 }
 
-func getVertices(starti, startj int, direction int, table [][]rune) ([][2]int, bool) {
+func getLoopPipes(starti, startj int, direction int, table [][]rune) (map[int]map[int]rune, bool) {
 
 	ci, cj := starti, startj
 
-	path := [][2]int{}
+	pipes := map[int]map[int]rune{}
 
-	// Checking the files S node is a corner in both cases
-	// To make this generic we should make sure it does not behave
-	// as | or -
-	path = append(path, [2]int{starti, startj})
+	pipes[starti] = map[int]rune{}
+
+	pipes[starti][startj] = table[starti][startj]
 
 	ok := false
 	for {
 		ci, cj, direction, ok = getNextCell(ci, cj, table, direction)
 
 		if !ok {
-			return path, false
+			return pipes, false
 		}
 
 		if table[ci][cj] == StartPoint {
 			// We need the polygon to be closed, so we add the starting point again
-			path = append(path, [2]int{ci, cj})
+			//path = append(path, [2]int{ci, cj})
 
-			return path, true
+			return pipes, true
 		}
 
-		if table[ci][cj] != '.' && table[ci][cj] != '-' && table[ci][cj] != '|' {
-			path = append(path, [2]int{ci, cj})
+		if table[ci][cj] != '.' {
+			if _, ok := pipes[ci]; !ok {
+				pipes[ci] = map[int]rune{}
+			}
+			pipes[ci][cj] = table[ci][cj]
 		}
-
 	}
 }
 
@@ -224,11 +225,71 @@ func Run1() {
 
 }
 
-func calculateArea(path [][2]int) int {
+func calculateArea(pipes map[int]map[int]rune) int {
 
-	area := 0
+	minLeft := math.MaxInt
+	minTop := math.MaxInt
 
-	return area
+	maxRight := 0
+	maxBottom := 0
+
+	for i, row := range pipes {
+		for j, _ := range row {
+
+			if minTop > i {
+				minTop = i
+			}
+			if maxBottom < i {
+				maxBottom = i
+			}
+
+			if minLeft > j {
+				minLeft = j
+			}
+			if maxRight < j {
+				maxRight = j
+			}
+		}
+	}
+
+	// Scanning horizontally
+	inside := false
+	totalArea := 0
+	fmt.Println()
+	fmt.Println(minTop, maxBottom, minLeft, maxRight)
+	fmt.Println()
+	for i := minTop - 1; i < maxBottom+1; i++ {
+		for j := minLeft - 1; j < maxRight+1; j++ {
+			if val, ok := pipes[i][j]; ok {
+				fmt.Printf("%s", string(pipes[i][j]))
+				if val == '|' {
+					inside = !inside
+				}
+
+				// if val == '7' || val == 'J' {
+				// 	inside = false
+				// }
+
+				// if val == '7' || val == 'J' {
+				// 	inside = false
+				// }
+
+				continue
+
+			}
+			if inside {
+				fmt.Print("I")
+				totalArea++
+			} else {
+				fmt.Print(".")
+
+			}
+		}
+		fmt.Println()
+	}
+	fmt.Println()
+
+	return totalArea
 }
 
 func Run2() {
@@ -244,20 +305,20 @@ func Run2() {
 
 	fmt.Println("start:", si, sj)
 
-	pathUp, okUp := getVertices(si-1, sj, MovingUp, table)
+	pathUp, okUp := getLoopPipes(si-1, sj, MovingUp, table)
 	//fmt.Println("UP", maxUp, okUp, distancesUp)
-	fmt.Println("UP", pathUp, okUp)
+	//fmt.Println("UP", pathUp, okUp)
 
-	pathDown, okDown := getVertices(si+1, sj, MovingDown, table)
+	pathDown, okDown := getLoopPipes(si+1, sj, MovingDown, table)
 	//fmt.Println("Down", maxDown, okDown, distancesDown)
-	fmt.Println("Down", pathDown, okDown)
+	//fmt.Println("Down", pathDown, okDown)
 
-	pathRight, okRight := getVertices(si, sj+1, MovingRight, table)
+	pathRight, okRight := getLoopPipes(si, sj+1, MovingRight, table)
 	//fmt.Println("Right", maxRight, okRight, distancesRight)
-	fmt.Println("Right", pathRight, okRight)
+	//fmt.Println("Right", pathRight, okRight)
 
-	pathLeft, okLeft := getVertices(si, sj-1, MovingLeft, table)
-	fmt.Println("PathLeft", pathLeft, okLeft)
+	pathLeft, okLeft := getLoopPipes(si, sj-1, MovingLeft, table)
+	//fmt.Println("PathLeft", pathLeft, okLeft)
 
 	area := 0
 	if okUp {

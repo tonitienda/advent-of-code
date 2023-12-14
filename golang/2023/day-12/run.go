@@ -69,7 +69,7 @@ func accordingToSpecs2(springs []rune, specs []int) bool {
 			// TODO - check if this formula is correct
 			// TODO - We are still permissive here not following the *
 			// but we can cut out some possibilities
-			return remainingChars >= remainingGroups
+			return remainingChars >= (remainingGroups*2 - 2)
 		}
 
 		if r == '#' {
@@ -267,12 +267,12 @@ func getArrangementsByLongRow(row string) int {
 func Run1() {
 	//fmt.Println(test)
 
-	rows := strings.Split(input, "\n")
+	rows := strings.Split(test, "\n")
 
 	totalArrangements := 0
-	for _, row := range rows {
+	for idx, row := range rows {
 		arrangements := getArrangementsByRow(row)
-		//fmt.Println(row, "=>", arrangements)
+		fmt.Println(idx+1, " ", row, "\t\t\t=>", arrangements)
 		totalArrangements += arrangements
 	}
 
@@ -290,6 +290,7 @@ func Run2() {
 		arrangements := getArrangementsByLongRow(row)
 		fmt.Println("\t=>", arrangements)
 		totalArrangements += arrangements
+		break
 	}
 
 	fmt.Println("Total arrangements:", totalArrangements)
