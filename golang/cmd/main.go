@@ -1,8 +1,8 @@
 package main
 
-import y2023d16 "advent/2023/day-16"
+import y2023d19 "advent/2023/day-19"
 
 func main() {
 
-	y2023d16.Run2()
+	y2023d19.Run1()
 }
