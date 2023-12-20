@@ -9,6 +9,9 @@ import (
 //go:embed test1.txt
 var test1 string
 
+//go:embed test2.txt
+var test2 string
+
 //go:embed input.txt
 var input string
 
@@ -54,7 +57,9 @@ type conjunction struct {
 }
 
 func (m *conjunction) getActivation(origin string, newPulse bool) (bool, bool) {
+	//fmt.Println("Conjunction activation:", origin, "->", newPulse)
 	m.inputs[origin] = newPulse
+	//fmt.Println(m.inputs)
 
 	//  if it remembers high pulses for all inputs,
 	//		it sends a low pulse;
@@ -95,6 +100,22 @@ func (m *broadcast) getType() rune {
 
 func (m *broadcast) String() string {
 	return "broadcast (" + m.label + ") -> " + strings.Join(m.outputs, ", ")
+}
+
+type test struct {
+	module
+}
+
+func (m *test) getActivation(origin string, newPulse bool) (bool, bool) {
+	return false, false
+}
+
+func (m *test) getType() rune {
+	return 't'
+}
+
+func (m *test) String() string {
+	return "test (" + m.label + ")"
 }
 
 type imodule interface {
@@ -183,10 +204,17 @@ func parseText(text string) (map[string]imodule, string) {
 			_, ok := systemM[output]
 
 			if !ok {
-				fmt.Printf("Output not found: '%s'", output)
+				systemM[output] = &test{
+					module{
+						label: output,
+					},
+				}
 			}
-			if systemM[output].getType() == '&' {
-				systemM[output].addInput(k)
+			// Some outputs are for testing purposes and are not really part of the system
+			if _, ok := systemM[output]; ok {
+				if systemM[output].getType() == '&' {
+					systemM[output].addInput(k)
+				}
 			}
 		}
 
@@ -196,47 +224,76 @@ func parseText(text string) (map[string]imodule, string) {
 
 }
 
+type pendingActivation struct {
+	origin      string
+	destination string
+	activation  bool
+}
+
 func Run1() {
 
-	fmt.Println(test1)
-
-	systemM, first := parseText(test1)
+	fmt.Println(input)
+	systemM, first := parseText(input)
 
 	fmt.Printf("%s\n%v\n", first, systemM)
 
-	numberOfClicks := 1
+	numberOfClicks := 1000
 
-	currentModule := first
-	totalPulses := 0
+	totalLowPulses := 0
+	totalHighPulses := 0
 	for i := 0; i < numberOfClicks; i++ {
-		pendingPulses := []struct {
-			string
-			bool
-		}{}
+		fmt.Println()
 
-		module := systemM[currentModule]
+		pendingPulses := []pendingActivation{}
 
-		outputs := module.getOutputs()
+		currentActivation := pendingActivation{
+			origin:      "button",
+			destination: first,
+			activation:  false}
+		// Click counts as a pulse
+		totalLowPulses++
 
-		nextPulse, propagate := module.getActivation("", false)
+		for {
 
-		if propagate {
-			for _, output := range outputs {
-				fmt.Println(currentModule, "-", nextPulse, "->", output)
-				totalPulses++
-				pendingPulses = append(pendingPulses, struct {
-					string
-					bool
-				}{
-					string: output,
-					bool:   nextPulse,
-				})
+			module := systemM[currentActivation.destination]
+			outputs := module.getOutputs()
 
+			nextPulse, propagate := module.getActivation(currentActivation.origin, currentActivation.activation)
+
+			if propagate {
+				for _, output := range outputs {
+					// Some outputs are for testing purposes and are not really part of the system
+					if _, ok := systemM[output]; ok {
+
+						fmt.Println(currentActivation.destination, "-", nextPulse, "->", output)
+						if nextPulse {
+							totalHighPulses++
+						} else {
+							totalLowPulses++
+						}
+						pendingPulses = append(pendingPulses, pendingActivation{
+							destination: output,
+							origin:      currentActivation.destination,
+							activation:  nextPulse,
+						})
+					}
+
+				}
 			}
+
+			//	fmt.Println("pendingPulses", pendingPulses)
+			if len(pendingPulses) == 0 {
+				break
+			}
+
+			currentActivation = pendingPulses[0]
+			pendingPulses = pendingPulses[1:]
+
 		}
 
-		fmt.Println("pendingPulses", pendingPulses)
-
 	}
+
+	fmt.Println()
+	fmt.Println("Total pulses:", totalHighPulses, "*", totalLowPulses, "=", totalHighPulses*totalLowPulses)
 
 }
