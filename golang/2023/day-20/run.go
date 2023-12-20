@@ -220,7 +220,9 @@ func parseText(text string) (map[string]imodule, string) {
 
 	}
 
-	return systemM, firstModule
+	// First module is always boardcaster
+	//return systemM, firstModule
+	return systemM, "broadcaster"
 
 }
 
@@ -295,5 +297,73 @@ func Run1() {
 
 	fmt.Println()
 	fmt.Println("Total pulses:", totalHighPulses, "*", totalLowPulses, "=", totalHighPulses*totalLowPulses)
+
+}
+
+func Run2() {
+
+	fmt.Println(input)
+	systemM, first := parseText(input)
+
+	fmt.Printf("%s\n%v\n", first, systemM)
+
+	numberOfClicks := 0
+
+outerloop:
+	for {
+		numberOfClicks++
+		fmt.Println()
+
+		pendingPulses := []pendingActivation{}
+
+		currentActivation := pendingActivation{
+			origin:      "button",
+			destination: first,
+			activation:  false}
+
+		for {
+
+			module := systemM[currentActivation.destination]
+			outputs := module.getOutputs()
+
+			nextPulse, propagate := module.getActivation(currentActivation.origin, currentActivation.activation)
+
+			if propagate {
+				for _, output := range outputs {
+					// Some outputs are for testing purposes and are not really part of the system
+					if _, ok := systemM[output]; ok {
+
+						if output == "rx" {
+							fmt.Printf("rx(%t). Clicks: %d\n", nextPulse, numberOfClicks)
+
+							if !nextPulse {
+								break outerloop
+							}
+						}
+
+						pendingPulses = append(pendingPulses, pendingActivation{
+							destination: output,
+							origin:      currentActivation.destination,
+							activation:  nextPulse,
+						})
+					}
+
+				}
+			}
+
+			//	fmt.Println("pendingPulses", pendingPulses)
+			if len(pendingPulses) == 0 {
+				break
+			}
+
+			currentActivation = pendingPulses[0]
+			pendingPulses = pendingPulses[1:]
+
+		}
+
+	}
+
+	fmt.Println()
+	fmt.Println("Total clicks", numberOfClicks)
 
 }
