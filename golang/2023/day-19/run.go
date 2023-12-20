@@ -181,3 +181,79 @@ func Run1() {
 	fmt.Println("Total", total)
 
 }
+
+type wfrange struct {
+	field rune
+	min   int
+	max   int
+	dest  string
+}
+type workflowsData map[string][]wfrange
+
+func parseWorkflowsToData(text string) workflowsData {
+	operationsDict := map[rune]operationMaker{
+		'>': fieldGreaterThan,
+		'<': fieldLessThan,
+	}
+
+	lines := strings.Split(text, "\n")
+
+	w := workflowsData{}
+
+	for _, line := range lines {
+		fmt.Println("Parsing:", line)
+		s1 := strings.Split(line, "{")
+
+		label := s1[0]
+		opsStr := strings.Split(strings.ReplaceAll(s1[1], "}", ""), ",")
+
+		wfRanges := []wfrange{}
+
+		for _, opStr := range opsStr {
+
+			// The label is the destination
+			if !strings.Contains(opStr, ":") {
+				wfRanges = append(wfRanges, wfrange{
+					field: ' ',
+					min:   0,
+					max:   4000,
+					dest:  opStr,
+				})
+				fmt.Println("\t\t", "=>", opStr)
+
+				continue
+			}
+
+			fmt.Println("\tParsing:", opStr)
+			field := rune(opStr[0])
+			op := rune(opStr[1])
+
+			s2 := strings.Split(opStr[2:], ":")
+
+			valueStr := s2[0]
+			dest := s2[1]
+
+			value, err := strconv.Atoi(valueStr)
+
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("\t\t", string(field), string(op), value, "=>", dest)
+			w[label]
+			operations = append(operations, operationsDict[op](field, value, dest))
+		}
+
+		w[label] = wfRanges
+	}
+
+	return w
+}
+
+func Run2() {
+	blocks := strings.Split(test, "\n\n")
+	workflows := parseWorkflowsToData(blocks[0])
+
+	fmt.Println(workflows)
+
+}
