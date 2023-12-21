@@ -20,13 +20,25 @@ type module struct {
 	status     bool
 	moduleType rune
 	outputs    []string
+	inputs     map[string]bool
 }
 
 func (m *module) getOutputs() []string {
 	return m.outputs
 }
 
+func (m *module) getInputs() []string {
+	i := []string{}
+
+	for k, _ := range m.inputs {
+		i = append(i, k)
+	}
+
+	return i
+}
+
 func (m *module) addInput(i string) {
+	m.inputs[i] = false
 }
 
 type flipFlop struct {
@@ -53,7 +65,6 @@ func (m *flipFlop) String() string {
 
 type conjunction struct {
 	module
-	inputs map[string]bool
 }
 
 func (m *conjunction) getActivation(origin string, newPulse bool) (bool, bool) {
@@ -122,6 +133,7 @@ type imodule interface {
 	getActivation(origin string, newPulse bool) (bool, bool)
 	getType() rune
 	getOutputs() []string
+	getInputs() []string
 	addInput(string)
 }
 
@@ -149,6 +161,7 @@ func parseText(text string) (map[string]imodule, string) {
 					label:   label,
 					status:  false,
 					outputs: outputs,
+					inputs:  map[string]bool{},
 				},
 			}
 			continue
@@ -166,9 +179,8 @@ func parseText(text string) (map[string]imodule, string) {
 					label:   label,
 					status:  false,
 					outputs: outputs,
+					inputs:  map[string]bool{},
 				},
-				// calculate inputs
-				inputs: map[string]bool{},
 			}
 			continue
 		}
@@ -199,22 +211,22 @@ func parseText(text string) (map[string]imodule, string) {
 		outputs := m.getOutputs()
 
 		for _, output := range outputs {
-			fmt.Println("Evaluating", output)
 
 			_, ok := systemM[output]
 
 			if !ok {
 				systemM[output] = &test{
 					module{
-						label: output,
+						label:  output,
+						inputs: map[string]bool{},
 					},
 				}
 			}
 			// Some outputs are for testing purposes and are not really part of the system
 			if _, ok := systemM[output]; ok {
-				if systemM[output].getType() == '&' {
-					systemM[output].addInput(k)
-				}
+				//if systemM[output].getType() == '&' {
+				systemM[output].addInput(k)
+				//}
 			}
 		}
 
@@ -300,70 +312,27 @@ func Run1() {
 
 }
 
+func calculateRequiredClicks(current string, systemM map[string]imodule) int {
+	if current == "broadcaster" {
+		return 1
+	}
+
+	mod := systemM[current]
+
+	if mod.getType() == '%' {
+		return 2 * calculateRequiredClicks(mod.getInputs()[0], systemM)
+	}
+
+	return 1
+}
+
 func Run2() {
 
 	fmt.Println(input)
-	systemM, first := parseText(input)
+	systemM, _ := parseText(input)
 
-	fmt.Printf("%s\n%v\n", first, systemM)
+	numberOfClicks := calculateRequiredClicks("rx", systemM)
 
-	numberOfClicks := 0
-
-outerloop:
-	for {
-		numberOfClicks++
-		fmt.Println()
-
-		pendingPulses := []pendingActivation{}
-
-		currentActivation := pendingActivation{
-			origin:      "button",
-			destination: first,
-			activation:  false}
-
-		for {
-
-			module := systemM[currentActivation.destination]
-			outputs := module.getOutputs()
-
-			nextPulse, propagate := module.getActivation(currentActivation.origin, currentActivation.activation)
-
-			if propagate {
-				for _, output := range outputs {
-					// Some outputs are for testing purposes and are not really part of the system
-					if _, ok := systemM[output]; ok {
-
-						if output == "rx" {
-							fmt.Printf("rx(%t). Clicks: %d\n", nextPulse, numberOfClicks)
-
-							if !nextPulse {
-								break outerloop
-							}
-						}
-
-						pendingPulses = append(pendingPulses, pendingActivation{
-							destination: output,
-							origin:      currentActivation.destination,
-							activation:  nextPulse,
-						})
-					}
-
-				}
-			}
-
-			//	fmt.Println("pendingPulses", pendingPulses)
-			if len(pendingPulses) == 0 {
-				break
-			}
-
-			currentActivation = pendingPulses[0]
-			pendingPulses = pendingPulses[1:]
-
-		}
-
-	}
-
-	fmt.Println()
-	fmt.Println("Total clicks", numberOfClicks)
+	fmt.Println(numberOfClicks)
 
 }
