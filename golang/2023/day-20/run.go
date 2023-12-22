@@ -1,8 +1,11 @@
 package y2023d20
 
 import (
+	"advent/utils/numbers"
 	_ "embed"
 	"fmt"
+	"log"
+	"math"
 	"strings"
 )
 
@@ -309,18 +312,131 @@ func Run1() {
 
 	fmt.Println()
 	fmt.Println("Total pulses:", totalHighPulses, "*", totalLowPulses, "=", totalHighPulses*totalLowPulses)
-
 }
 
-func calculateRequiredClicks(current string, systemM map[string]imodule) int {
-	if current == "broadcaster" {
-		return 1
+var memo map[string]int
+
+func init() {
+	memo = map[string]int{
+		"low(broadcaster)": 1,
+	}
+}
+
+func cacheAndReturn(key string, value int) int {
+
+	if value == 0 {
+		log.Panicf("Error. Caching value 0 for %s", key)
+	}
+	memo[key] = value
+
+	return value
+}
+
+func calculateRequiredClicksForLow(current string, systemM map[string]imodule) int {
+	key := fmt.Sprintf("low(%s)", current)
+	fmt.Printf("Evaluating %s...", key)
+
+	if val, ok := memo[key]; ok {
+		fmt.Printf("cached: %d\n", val)
+
+		return val
+	} else {
+		fmt.Println("not cached")
+
 	}
 
 	mod := systemM[current]
 
 	if mod.getType() == '%' {
-		return 2 * calculateRequiredClicks(mod.getInputs()[0], systemM)
+		fmt.Println("low %")
+		// TODO - Not sure about this one. If any of the inputs
+		// is low, it works for flipflops to switch
+		clicks := 2 * calculateRequiredClicksForLow(mod.getInputs()[0], systemM)
+		memo[key] = clicks
+		return clicks
+	}
+
+	if mod.getType() == '&' {
+		fmt.Println("low &")
+		// If conjunction has one input it only acts as an inversor
+		if len(mod.getInputs()) == 1 {
+			clicks := calculateRequiredClicksForHigh(mod.getInputs()[0], systemM)
+			memo[key] = clicks
+			return clicks
+		}
+
+		if len(mod.getInputs()) == 2 {
+			clicks1 := calculateRequiredClicksForHigh(mod.getInputs()[0], systemM)
+			clicks2 := calculateRequiredClicksForHigh(mod.getInputs()[1], systemM)
+
+			return cacheAndReturn(key, numbers.LCM(clicks1, clicks2))
+		}
+
+		clicksForHigh := []int{}
+		for _, input := range mod.getInputs() {
+			clicksForHigh = append(clicksForHigh, calculateRequiredClicksForHigh(input, systemM))
+		}
+
+		return cacheAndReturn(key, numbers.LCM(clicksForHigh[0], clicksForHigh[1], clicksForHigh[1:]...))
+	}
+
+	// Test components will get LOW when the first of their inputs send low
+	// so we can return the min clicks needed for any of their inputs to send low
+	// If conjunction has one input it only acts as an inversor
+
+	fmt.Println("low output")
+	minClicks := math.MaxInt
+	for _, input := range mod.getInputs() {
+		minClicks = int(math.Min(float64(minClicks), float64(calculateRequiredClicksForLow(input, systemM))))
+	}
+
+	return cacheAndReturn(key, minClicks)
+}
+
+func calculateRequiredClicksForHigh(current string, systemM map[string]imodule) int {
+	key := fmt.Sprintf("high(%s)", current)
+	fmt.Printf("Evaluating %s...", key)
+
+	if val, ok := memo[key]; ok {
+		fmt.Printf("cached: %d\n", val)
+
+		return val
+	} else {
+		fmt.Println("not cached")
+
+	}
+
+	if current == "broadcaster" {
+		log.Panicf("Broadcaster will never emit a high pulse")
+	}
+
+	mod := systemM[current]
+
+	if mod.getType() == '&' {
+		fmt.Println("high &")
+
+		// If conjunction has one input it only acts as an inversor
+		if len(mod.getInputs()) == 1 {
+			return cacheAndReturn(key, calculateRequiredClicksForLow(mod.getInputs()[0], systemM))
+		}
+
+		minClicks := math.MaxInt
+		for _, input := range mod.getInputs() {
+			minClicks = int(math.Min(float64(minClicks), float64(calculateRequiredClicksForLow(input, systemM))))
+		}
+
+		return cacheAndReturn(key, minClicks)
+	}
+
+	if mod.getType() == '%' {
+		fmt.Println("high %")
+
+		// TODO - Not sure about this one. If any of the inputs
+		// is low, it works for flipflops to switch
+		clicks := 2 * calculateRequiredClicksForLow(mod.getInputs()[0], systemM)
+
+		fmt.Println("Clicks for", key, "=", clicks)
+		return cacheAndReturn(key, clicks)
 	}
 
 	return 1
@@ -331,7 +447,7 @@ func Run2() {
 	fmt.Println(input)
 	systemM, _ := parseText(input)
 
-	numberOfClicks := calculateRequiredClicks("rx", systemM)
+	numberOfClicks := calculateRequiredClicksForLow("rx", systemM)
 
 	fmt.Println(numberOfClicks)
 

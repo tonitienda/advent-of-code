@@ -2,4 +2,33 @@ broadcaster -> a
 %a -> inv, con
 &inv -> b
 %b -> con
-&con -> output
+&con -> rx
+
+
+button -low-> broadcaster
+broadcaster -low-> a
+a -high-> inv
+a -high-> con
+inv -low-> b
+
+con -high-> rx
+
+b -high-> con
+
+con -low-> rx
+
+
+
+rx = low(con)
+low(con) = LCM(high(a), high(b))
+high(a) =  low(broadcaster)
+high(b) = low(inv) // This one is tricky because a and b have state.
+
+low(inv) = high(a)
+
+low(broadcaster) = 1
+high(a) = 1
+low(inv) = 1
+high(b) = 1
+low(con) = 1
+rx = 1
