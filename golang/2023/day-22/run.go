@@ -3,6 +3,8 @@ package y2023d22
 import (
 	_ "embed"
 	"fmt"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -103,10 +105,13 @@ func supports(brick1, brick2 brick) bool {
 	return false
 }
 
-func Run1() {
-	fmt.Println(input)
+func getSupportAndSupportedBy(text string) ([]brick, map[int][]int, map[int][]int) {
 
-	bricks := getBricks(input)
+	bricks := getBricks(text)
+
+	sort.Slice(bricks, func(i, j int) bool {
+		return bricks[i][0][2] < bricks[j][0][2]
+	})
 
 	restedBricks := []brick{}
 
@@ -122,32 +127,18 @@ func Run1() {
 	support := map[int][]int{}
 	isSupportedBy := map[int][]int{}
 
-	// b1 := 1
-	// b2 := 3
-
-	// fmt.Println(string('A'+rune(b1)), "supports", string('A'+rune(b2)), "?")
-
-	// if supports(restedBricks[b1], restedBricks[b2]) {
-	// 	fmt.Println("\tYes")
-	// } else {
-	// 	fmt.Println("\tNo")
-	// }
-
-	// fmt.Println(bricks)
-	// fmt.Println(restedBricks)
-
 	for i := 0; i < len(restedBricks); i++ {
 		for j := 0; j < len(restedBricks); j++ {
 			if i != j {
-				fmt.Println(string('A'+rune(i)), "supports", string('A'+rune(j)), "?")
+				//fmt.Println(string('A'+rune(i)), "supports", string('A'+rune(j)), "?")
 
 				if supports(restedBricks[i], restedBricks[j]) {
-					fmt.Println("\tYes")
+					//	fmt.Println("\tYes")
 
 					support[i] = append(support[i], j)
 					isSupportedBy[j] = append(isSupportedBy[j], i)
 				} else {
-					fmt.Println("\tNo")
+					//	fmt.Println("\tNo")
 				}
 
 			}
@@ -155,13 +146,20 @@ func Run1() {
 		}
 	}
 
+	return bricks, support, isSupportedBy
+
+}
+
+func Run1() {
+
+	bricks, support, supportedBy := getSupportAndSupportedBy(input)
 	fmt.Println(support)
 
-	fmt.Println(isSupportedBy)
+	fmt.Println(supportedBy)
 
 	cannotBeRemoved := map[int]bool{}
 
-	for _, v := range isSupportedBy {
+	for _, v := range supportedBy {
 		// If the brick is supported by only one,
 		// that one cannot be removed
 		if len(v) == 1 {
@@ -170,5 +168,83 @@ func Run1() {
 	}
 
 	fmt.Println("Cannot be removed:", len(cannotBeRemoved))
+
+	// for k, _ := range cannotBeRemoved {
+	// 	fmt.Println(string('A' + rune(k)))
+	// }
+
 	fmt.Println("Can be removed:", len(bricks)-len(cannotBeRemoved))
+
 }
+
+func allRemoved(removed []int, existing []int) bool {
+	for _, e := range existing {
+		if !slices.Contains(removed, e) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func Run2() {
+
+	bricks, support, supportedBy := getSupportAndSupportedBy(input)
+	fmt.Println(support)
+
+	fmt.Println(supportedBy)
+
+	fallingBricks := map[int][]int{}
+
+	for idx := range bricks {
+		// If I remove a brick, how many get without support
+		removedBricks := []int{idx}
+		brickWasRemoved := true
+
+		for brickWasRemoved {
+			brickWasRemoved = false
+			for key, value := range supportedBy {
+				if slices.Index(removedBricks, key) == -1 && allRemoved(removedBricks, value) {
+					removedBricks = append(removedBricks, key)
+					fallingBricks[idx] = append(fallingBricks[idx], key)
+					brickWasRemoved = true
+				}
+			}
+		}
+
+	}
+
+	fmt.Println("fallingBricks", fallingBricks)
+
+	total := 0
+
+	for _, v := range fallingBricks {
+		total += len(v)
+	}
+
+	fmt.Println("total:", total)
+	// for k, _ := range cannotBeRemoved {
+	// 	fmt.Println(string('A' + rune(k)))
+	// }
+
+}
+
+/*
+
+A -> [B, C]
+B -> [D, E]
+C -> [D, E]
+D -> [F]
+E -> [F]
+F -> [G]
+
+
+A -> []
+B -> [A]
+C -> [A]
+D -> [B,C]
+E -> [B,C]
+F -> [D,E]
+G -> [F]
+
+*/
